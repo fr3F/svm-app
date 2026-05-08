@@ -4,6 +4,7 @@ import * as MediaLibrary from "expo-media-library";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { usePlayer } from "@/stores/usePlayer";
 import { nativeEngine } from "@/stores/nativeEngine";
+import { PitchShifter } from "soundtouchjs";
 import {
   Alert, PanResponder, Platform, StyleSheet, Switch, Text,
   TouchableOpacity, View,
@@ -11,12 +12,13 @@ import {
 
 // Session Web Audio persistante au niveau du module — survit aux unmounts
 const waGlobal = {
-  ctx: null as any,
-  audioEl: null as any,
-  mediaSource: null as any,
+  ctx: null as AudioContext | null,
+  shifter: null as PitchShifter | null,
+  gainNode: null as GainNode | null,
   master: null as any, dry: null as any, wet: null as any,
   conv: null as any, pan: null as any,
   graphReady: false, pannerOn: false,
+  isPlaying: false, pausedAt: 0,
   panAngle: 0, panTimer: null as any, tickTimer: null as any,
   uri: "",
 };
@@ -149,13 +151,10 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   }, []);
 
   // ── Helpers Web Audio ─────────────────────────────────────────────────────
-  const waRate = () => {
-    const p = prms.current;
-    return Math.max(0.1, Math.min(4, p.speed * Math.pow(2, p.semitones / 12) * (p.pitchHz / 440)));
-  };
-
   const waInitGraph = () => {
-    const ctx = wa.ctx;
+    const ctx = wa.ctx!;
+    (wa as typeof waGlobal).gainNode = ctx.createGain();
+    (wa as typeof waGlobal).gainNode!.gain.value = 0;
     wa.master = ctx.createGain(); wa.master.gain.value = 1;
     wa.dry = ctx.createGain();    wa.dry.gain.value = 1;
     wa.wet = ctx.createGain();    wa.wet.gain.value = 0;
@@ -167,18 +166,22 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
       for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
     }
     wa.conv.buffer = imp;
+    (wa as typeof waGlobal).gainNode!.connect(wa.master);
     wa.master.connect(wa.dry);
     wa.master.connect(wa.conv);
     wa.conv.connect(wa.wet);
     wa.dry.connect(ctx.destination);
     wa.wet.connect(ctx.destination);
-    wa.mediaSource = ctx.createMediaElementSource(wa.audioEl);
-    wa.mediaSource.connect(wa.master);
     wa.graphReady = true;
   };
 
+  // pitch indépendant de la vitesse grâce à PitchShifter
   const waApplyRate = () => {
-    if (wa.audioEl) wa.audioEl.playbackRate = waRate();
+    const s = (wa as typeof waGlobal).shifter;
+    if (!s) return;
+    const p = prms.current;
+    s.pitch = Math.pow(2, p.semitones / 12) * (p.pitchHz / 440);
+    s.tempo = p.speed;
   };
 
   const waApplyReverb = () => {
@@ -218,22 +221,23 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   const waStartTick = () => {
     if (wa.tickTimer) clearInterval(wa.tickTimer);
     wa.tickTimer = setInterval(() => {
-      if (!wa.audioEl) return;
-      const pos = wa.audioEl.currentTime;
-      const dur = wa.audioEl.duration;
-      const playing = !wa.audioEl.paused && !wa.audioEl.ended;
-      if (dur && isFinite(dur)) { durationRef.current = dur; setDuration(dur); }
-      positionRef.current = pos;
-      setPosition(pos);
+      const wg = wa as typeof waGlobal;
+      if (!wg.shifter) return;
+      const playing = wg.isPlaying;
+      if (playing) {
+        const pos = wg.shifter.timePlayed;
+        if (!isSeeking.current) { positionRef.current = pos; setPosition(pos); }
+      }
       setIsPlaying(playing);
       usePlayer.getState().setIsPlaying(playing);
     }, 200);
   };
 
-  // ── Web: chargement audio ─────────────────────────────────────────────────
+  // ── Web: chargement audio via PitchShifter ───────────────────────────────
   useEffect(() => {
     if (!IS_WEB || !audioSource) return;
     let active = true;
+    const wg = waGlobal;
 
     setLoading(true);
 
@@ -245,80 +249,63 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
         const uri = asset.uri;
 
         // REATTACH : même audio déjà chargé
-        if (waGlobal.uri === uri && waGlobal.audioEl && waGlobal.graphReady) {
-          const dur = waGlobal.audioEl.duration;
-          if (dur && isFinite(dur)) { durationRef.current = dur; setDuration(dur); }
-          positionRef.current = waGlobal.audioEl.currentTime;
-          setPosition(waGlobal.audioEl.currentTime);
-          setIsPlaying(!waGlobal.audioEl.paused && !waGlobal.audioEl.ended);
+        if (wg.uri === uri && wg.shifter && wg.graphReady) {
+          const dur = wg.shifter.duration;
+          durationRef.current = dur; setDuration(dur);
+          const pos = wg.isPlaying ? wg.shifter.timePlayed : wg.pausedAt * dur / 100;
+          positionRef.current = pos; setPosition(pos);
+          setIsPlaying(wg.isPlaying);
           setLoading(false);
           waStartTick();
-          if (autoStart && waGlobal.audioEl.paused) {
-            if (waGlobal.ctx.state === "suspended") waGlobal.ctx.resume();
-            waGlobal.audioEl.play().catch(() => {});
-            setIsPlaying(true);
-          }
           return;
         }
 
-        // NOUVEAU : teardown + chargement
-        clearInterval(wa.tickTimer); clearInterval(wa.panTimer);
-        wa.tickTimer = null; wa.panTimer = null;
-        if (wa.audioEl) { try { wa.audioEl.pause(); } catch {} wa.audioEl.src = ""; wa.audioEl = null; }
-        wa.mediaSource = null; wa.graphReady = false; wa.pannerOn = false; wa.pan = null;
-        try { wa.ctx?.close(); } catch {}
-        wa.ctx = null;
-        waGlobal.uri = "";
+        // NOUVEAU : teardown
+        clearInterval(wg.tickTimer); clearInterval(wg.panTimer);
+        wg.tickTimer = null; wg.panTimer = null;
+        if (wg.shifter) { try { wg.shifter.disconnect(); } catch {} wg.shifter = null; }
+        wg.gainNode = null; wg.graphReady = false; wg.pannerOn = false; wg.pan = null;
+        wg.isPlaying = false; wg.pausedAt = 0;
+        try { wg.ctx?.close(); } catch {}
+        wg.ctx = null; wg.uri = "";
 
         setIsPlaying(false); setPosition(0); setDuration(0);
 
-        wa.ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
-        wa.audioEl = new Audio(uri) as HTMLAudioElement;
-        wa.audioEl.preload = "auto";
-        (wa.audioEl as any).preservesPitch = false;
-        (wa.audioEl as any).mozPreservePitch = false;
-        waGlobal.uri = uri;
+        // Charger comme ArrayBuffer pour PitchShifter
+        const resp = await fetch(uri);
+        if (!active) return;
+        const arrayBuf = await resp.arrayBuffer();
+        if (!active) return;
 
-        wa.audioEl.oncanplay = () => {
-          if (!active || wa.graphReady) return;
-          try { waInitGraph(); } catch { if (active) setLoading(false); return; }
-          const dur = wa.audioEl?.duration ?? 0;
-          if (isFinite(dur)) { durationRef.current = dur; setDuration(dur); }
-          wa.audioEl!.playbackRate = waRate();
-          waStartTick();
-          if (active) setLoading(false);
-          if (autoStart) {
-            if (wa.ctx.state === "suspended") wa.ctx.resume();
-            wa.audioEl!.play().catch(() => {});
-            setIsPlaying(true);
-          }
-        };
+        wg.ctx = new ((window as any).AudioContext || (window as any).webkitAudioContext)() as AudioContext;
+        const audioBuf = await (wg.ctx as AudioContext).decodeAudioData(arrayBuf);
+        if (!active) return;
 
-        wa.audioEl.ondurationchange = () => {
-          const dur = wa.audioEl?.duration ?? 0;
-          if (dur && isFinite(dur)) { durationRef.current = dur; setDuration(dur); }
-        };
+        waInitGraph();
 
-        wa.audioEl.onended = () => {
+        wg.uri = uri;
+        durationRef.current = audioBuf.duration; setDuration(audioBuf.duration);
+
+        wg.shifter = new PitchShifter(wg.ctx as AudioContext, audioBuf, 4096, () => {
+          // onEnd
+          wg.isPlaying = false; wg.pausedAt = 0;
+          wg.gainNode!.gain.value = 0;
           setIsPlaying(false); setPosition(0); positionRef.current = 0;
           usePlayer.getState().setIsPlaying(false);
           onEndedRef.current?.();
-        };
+        });
+        wg.shifter.connect(wg.gainNode!);
+        waApplyRate();
+
+        setLoading(false);
+        waStartTick();
       } catch { if (active) setLoading(false); }
     })();
 
     return () => {
       active = false;
-      if (!IS_WEB) {
-        clearInterval(wa.tickTimer); clearInterval(wa.panTimer);
-        wa.tickTimer = null; wa.panTimer = null;
-        if (wa.audioEl) { try { wa.audioEl.pause(); } catch {} wa.audioEl.src = ""; }
-        try { wa.ctx?.close(); } catch {}
-        wa.graphReady = false; wa.pannerOn = false;
-      } else {
-        clearInterval(wa.tickTimer);
-        wa.tickTimer = null;
-      }
+      clearInterval(wg.tickTimer);
+      wg.tickTimer = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioSource]);
@@ -385,14 +372,21 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   // ── Actions ───────────────────────────────────────────────────────────────
   const playPause = () => {
     if (IS_WEB) {
-      if (!wa.audioEl || !wa.graphReady) return;
-      if (wa.ctx.state === "suspended") wa.ctx.resume();
-      if (!wa.audioEl.paused) {
-        wa.audioEl.pause();
+      const wg = waGlobal;
+      if (!wg.shifter || !wg.graphReady || !wg.gainNode) return;
+      if (wg.ctx!.state === "suspended") wg.ctx!.resume();
+      if (wg.isPlaying) {
+        wg.pausedAt = wg.shifter.percentagePlayed;
+        wg.gainNode.gain.value = 0;
+        wg.isPlaying = false;
         setIsPlaying(false);
+        usePlayer.getState().setIsPlaying(false);
       } else {
-        wa.audioEl.play().catch(() => {});
+        wg.shifter.percentagePlayed = wg.pausedAt;
+        wg.gainNode.gain.value = 1;
+        wg.isPlaying = true;
         setIsPlaying(true);
+        usePlayer.getState().setIsPlaying(true);
         if (prms.current.is8D) waApply8D();
       }
     } else {
@@ -400,12 +394,19 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
     }
   };
 
+  const waSeekToPos = (pos: number) => {
+    const wg = waGlobal;
+    if (!wg.shifter) return;
+    const dur = durationRef.current;
+    const perc = dur > 0 ? (pos / dur) * 100 : 0;
+    wg.shifter.percentagePlayed = perc;
+    if (!wg.isPlaying) wg.pausedAt = perc;
+    positionRef.current = pos; setPosition(pos);
+  };
+
   const back = () => {
     if (IS_WEB) {
-      if (!wa.audioEl) return;
-      const p = Math.max(0, wa.audioEl.currentTime - 10);
-      wa.audioEl.currentTime = p;
-      setPosition(p); positionRef.current = p;
+      waSeekToPos(Math.max(0, positionRef.current - 10));
     } else {
       const p = Math.max(0, positionRef.current - 10);
       send({ type: "seek", position: p }); setPosition(p);
@@ -414,10 +415,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
 
   const fwd = () => {
     if (IS_WEB) {
-      if (!wa.audioEl) return;
-      const p = Math.min(durationRef.current, wa.audioEl.currentTime + 10);
-      wa.audioEl.currentTime = p;
-      setPosition(p); positionRef.current = p;
+      waSeekToPos(Math.min(durationRef.current, positionRef.current + 10));
     } else {
       const p = Math.min(durationRef.current, positionRef.current + 10);
       send({ type: "seek", position: p }); setPosition(p);
@@ -431,7 +429,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
     const pos = ratio * dur;
     setSeekPct(ratio * 100);
     if (IS_WEB) {
-      if (wa.audioEl) wa.audioEl.currentTime = pos;
+      waSeekToPos(pos);
     } else {
       send({ type: "seek", position: pos });
     }

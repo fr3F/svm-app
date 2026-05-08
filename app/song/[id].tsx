@@ -46,16 +46,16 @@ export default function SongDetail() {
     return () => usePlayer.getState().setCurrentPageId(null);
   }, [id]);
 
-  useEffect(() => {
-    if (activeSong && activeSong.type === "playback") {
-      usePlayer.getState().setSong(activeSong);
-    }
-  }, [activeSong?.id]);
+  const startPlay = useCallback((target: typeof activeSong | null | undefined) => {
+    if (target) usePlayer.getState().setSong(target);
+  }, []);
 
   const goTo = useCallback((targetId: string) => {
+    const target = songs.find(s => s.id === targetId) ?? null;
+    startPlay(target);
     setActiveSongId(targetId);
     setAutoStartPlayer(true);
-  }, []);
+  }, [startPlay]);
 
   const handleEnded = useCallback(() => {
     if (autoPlay && nextSong) goTo(nextSong.id);
@@ -97,7 +97,10 @@ export default function SongDetail() {
           </TouchableOpacity>
           {song!.type === "playback" && song!.audio && (
             <TouchableOpacity
-              onPress={() => setShowPlayer(v => !v)}
+              onPress={() => {
+                if (!showPlayer) startPlay(activeSong);
+                setShowPlayer(v => !v);
+              }}
               style={[styles.iconBtn, showPlayer && styles.iconBtnActive]}
               activeOpacity={0.7}
             >
@@ -114,7 +117,15 @@ export default function SongDetail() {
           </View>
           <Text style={styles.songTitle}>{activeSong!.title}</Text>
           {activeSong!.type && (
-            <View style={[styles.typeBadge, activeSong!.type === "playback" && styles.typeBadgePlayback]}>
+            <TouchableOpacity
+              disabled={activeSong!.type !== "playback"}
+              onPress={() => {
+                if (!showPlayer) startPlay(activeSong);
+                setShowPlayer(true);
+              }}
+              activeOpacity={0.75}
+              style={[styles.typeBadge, activeSong!.type === "playback" && styles.typeBadgePlayback]}
+            >
               <Ionicons
                 name={activeSong!.type === "playback" ? "headset" : "book-outline"}
                 size={11}
@@ -123,7 +134,7 @@ export default function SongDetail() {
               <Text style={[styles.typeText, activeSong!.type === "playback" && styles.typeTextPlayback]}>
                 {activeSong!.type === "playback" ? "Playback" : "Lyrics"}
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
         </View>
 
