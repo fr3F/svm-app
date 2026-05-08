@@ -78,6 +78,29 @@ const ss = StyleSheet.create({
 
 const IS_WEB = Platform.OS === "web";
 
+// cent = unité internationale (1 semitone = 100¢, ISO 16:1975)
+const hzToCents = (hz: number) => Math.round(1200 * Math.log2(hz / 440));
+const centsToHz  = (c: number) => 440 * Math.pow(2, c / 1200);
+
+// Diapasons de référence — norme ISO 16:1975
+const PITCH_STANDARDS: { hz: number; cents: number; name: string; label: string }[] = [
+  { hz: 415, cents: -100, name: "Baroque", label: "A415\n−100¢" },
+  { hz: 432, cents:  -32, name: "Naturel",  label: "A432\n−32¢"  },
+  { hz: 440, cents:    0, name: "ISO",      label: "A440\n0¢"    },
+  { hz: 442, cents:    8, name: "France",   label: "A442\n+8¢"   },
+  { hz: 443, cents:   12, name: "Berlin",   label: "A443\n+12¢"  },
+  { hz: 444, cents:   16, name: "Moderna",  label: "A444\n+16¢"  },
+];
+
+// RT60 — norme ISO 3382-1:2009 (temps de réverbération en secondes)
+const RT60_STANDARDS = [
+  { s: 0.0, label: "0s",    name: "Sec"      },
+  { s: 0.3, label: "0.3s",  name: "Studio"   },
+  { s: 0.6, label: "0.6s",  name: "Chambre"  },
+  { s: 1.2, label: "1.2s",  name: "Concert"  },
+  { s: 2.5, label: "2.5s",  name: "Cathédrale"},
+];
+
 // ─── Composant principal ─────────────────────────────────────────────────────
 export default function PlaybackControls({ audioSource, songTitle, onEnded, autoStart }: Props) {
   const onEndedRef = useRef(onEnded);
@@ -105,8 +128,8 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   const [showEffects, setShowEffects] = useState(false);
   const [speed, setSpeedState] = useState(1);
   const [semitones, setSemitonesState] = useState(0);
-  const [pitchHz, setPitchHzState] = useState(440);
-  const [reverb, setReverbState] = useState(0);
+  const [pitchCents, setPitchCentsState] = useState(0); // 0¢ = A440 ISO
+  const [rt60, setRt60State] = useState(0); // secondes — ISO 3382-1:2009
   const [is8D, set8DState] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -159,13 +182,10 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
     wa.dry = ctx.createGain();    wa.dry.gain.value = 1;
     wa.wet = ctx.createGain();    wa.wet.gain.value = 0;
     wa.conv = ctx.createConvolver();
-    const len = ctx.sampleRate * 3;
-    const imp = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) {
-      const d = imp.getChannelData(c);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
-    }
-    wa.conv.buffer = imp;
+    // impulse identité (1 sample) — remplacé dynamiquement par waApplyRT60
+    const identity = ctx.createBuffer(1, 1, ctx.sampleRate);
+    identity.getChannelData(0)[0] = 1;
+    wa.conv.buffer = identity;
     (wa as typeof waGlobal).gainNode!.connect(wa.master);
     wa.master.connect(wa.dry);
     wa.master.connect(wa.conv);
@@ -175,20 +195,40 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
     wa.graphReady = true;
   };
 
-  // pitch indépendant de la vitesse grâce à PitchShifter
+  // pitch indépendant de la vitesse — norme 12-TET ISO 16:1975
   const waApplyRate = () => {
     const s = (wa as typeof waGlobal).shifter;
     if (!s) return;
     const p = prms.current;
-    s.pitch = Math.pow(2, p.semitones / 12) * (p.pitchHz / 440);
+    // convertir l'écart de diapason en semitones (12-TET), puis additionner
+    const pitchDeviation = 12 * Math.log2(p.pitchHz / 440);
+    s.pitchSemitones = p.semitones + pitchDeviation;
     s.tempo = p.speed;
   };
 
+  // RT60 — norme ISO 3382-1:2009 : IR synthétique avec décroissance exponentielle
   const waApplyReverb = () => {
-    if (!wa.dry) return;
-    const amt = prms.current.reverb / 100;
-    wa.dry.gain.setTargetAtTime(1 - amt * 0.85, wa.ctx.currentTime, 0.04);
-    wa.wet.gain.setTargetAtTime(amt * 0.9,       wa.ctx.currentTime, 0.04);
+    if (!wa.ctx || !wa.conv || !wa.dry || !wa.wet) return;
+    const rt60 = prms.current.reverb; // stocké en secondes dans prms
+    if (rt60 <= 0) {
+      wa.dry.gain.setTargetAtTime(1, wa.ctx.currentTime, 0.04);
+      wa.wet.gain.setTargetAtTime(0, wa.ctx.currentTime, 0.04);
+      return;
+    }
+    // Générer IR avec décroissance e^(−6.9078 × t / RT60) — formule de Schroeder
+    const sr = wa.ctx.sampleRate;
+    const len = Math.ceil(rt60 * sr);
+    const imp = wa.ctx.createBuffer(2, len, sr);
+    for (let c = 0; c < 2; c++) {
+      const d = imp.getChannelData(c);
+      for (let i = 0; i < len; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.exp(-6.9078 * i / (rt60 * sr));
+      }
+    }
+    wa.conv.buffer = imp;
+    const wet = Math.min(0.55, rt60 / 3 * 0.55);
+    wa.dry.gain.setTargetAtTime(1 - wet * 0.4, wa.ctx.currentTime, 0.04);
+    wa.wet.gain.setTargetAtTime(wet,            wa.ctx.currentTime, 0.04);
   };
 
   const waApply8D = () => {
@@ -313,13 +353,14 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   // ── Web: sync effets ──────────────────────────────────────────────────────
   useEffect(() => {
     const prev8D = prms.current.is8D;
-    prms.current = { speed, semitones, pitchHz, reverb, is8D };
+    const pitchHz = centsToHz(pitchCents);
+    prms.current = { speed, semitones, pitchHz, reverb: rt60, is8D };
     if (!IS_WEB || !wa.graphReady) return;
     waApplyRate();
     waApplyReverb();
     if (is8D !== prev8D) waApply8D();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [speed, semitones, pitchHz, reverb, is8D]);
+  }, [speed, semitones, pitchCents, rt60, is8D]);
 
   // ── Native: chargement audio (avec REATTACH) ──────────────────────────────
   useEffect(() => {
@@ -366,8 +407,8 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   // ── Native: sync effets ───────────────────────────────────────────────────
   useEffect(() => {
     if (IS_WEB) return;
-    send({ type: "effects", params: { speed, semitones, pitchHz, reverb, is8D } });
-  }, [speed, semitones, pitchHz, reverb, is8D, send]);
+    send({ type: "effects", params: { speed, semitones, pitchHz: centsToHz(pitchCents), reverb: rt60 / 3 * 100, is8D } });
+  }, [speed, semitones, pitchCents, rt60, is8D, send]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const playPause = () => {
@@ -462,18 +503,19 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   const TIPS: Record<string, string> = {
     speed:    "Manova ny hafainganana ny hira.\n1× = tsy miovaova  •  2× = roa heny haingana",
     semitones:"Manova ny feony ny hira.\n+1 = misondrotra demi-ton 1  •  −12 = midina oktava iray",
-    pitch:    "Manova ny diapason de référence.\n440 Hz = fenitra  •  432 Hz = accordage naturaly",
-    reverb:   "Manova ny echo sy résonnance.\n0% = tsy misy  •  100% = echo be",
+    pitch:    "Diapason de référence (norme ISO 16:1975 = A440).\nA415 Baroque  •  A432 Naturaly  •  A440 Standard  •  A442 Française  •  A443 Berlina  •  A444 Moderna",
+    reverb:   "RT60 — temps de réverbération (ISO 3382-1:2009).\n0s = Sec  •  0.3s = Studio  •  0.6s = Chambre  •  1.2s = Concert  •  2.5s = Cathédrale",
     e8d:      "Effet spatial rotatif —\ntoy ny feo mandeha manodidina anao",
   };
 
   const setSpeed = (v: number) => setSpeedState(v);
   const setSemitones = (v: number) => setSemitonesState(Math.round(v));
-  const setPitchHz = (v: number) => setPitchHzState(Math.round(v));
-  const setReverb = (v: number) => setReverbState(v);
+  const setPitchCents = (v: number) => setPitchCentsState(Math.round(v));
+  const setRt60 = (v: number) => setRt60State(Math.round(v * 10) / 10);
   const set8D = (v: boolean) => set8DState(v);
-  const resetEffects = () => { setSpeedState(1); setSemitonesState(0); setPitchHzState(440); setReverbState(0); set8DState(false); };
-  const hasEffects = speed !== 1 || semitones !== 0 || pitchHz !== 440 || reverb > 0 || is8D;
+  const resetEffects = () => { setSpeedState(1); setSemitonesState(0); setPitchCentsState(0); setRt60State(0); set8DState(false); };
+  const hasEffects = speed !== 1 || semitones !== 0 || pitchCents !== 0 || rt60 > 0 || is8D;
+  const pitchHz = centsToHz(pitchCents);
 
   useEffect(() => { resetEffects(); }, [audioSource]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -574,30 +616,33 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
             </View>
           </View>
 
-          {/* Pitch Hz */}
+          {/* Diapason (cents — unité internationale) */}
           <View style={styles.row}>
             <View style={styles.rowHead}>
               <View style={styles.lblRow}>
-                <Text style={styles.lbl}>Pitch</Text>
+                <Text style={styles.lbl}>Diapason</Text>
                 <TouchableOpacity onPress={() => showTip("pitch")} style={styles.infoBtn}>
                   <Ionicons name="information-circle-outline" size={14} color={tooltip === "pitch" ? "#f97316" : "#3a4e6a"} />
                 </TouchableOpacity>
               </View>
               <View style={styles.rowHeadRight}>
-                <Text style={[styles.val, pitchHz !== 440 && styles.valOn]}>{pitchHz} Hz</Text>
-                {pitchHz !== 440 && (
-                  <TouchableOpacity onPress={() => setPitchHz(440)} style={styles.inlineReset}>
+                <Text style={[styles.val, pitchCents !== 0 && styles.valOn]}>
+                  A{Math.round(pitchHz)}
+                  {pitchCents !== 0 ? `  ${pitchCents > 0 ? "+" : ""}${pitchCents}¢` : "  0¢"}
+                </Text>
+                {pitchCents !== 0 && (
+                  <TouchableOpacity onPress={() => setPitchCents(0)} style={styles.inlineReset}>
                     <Ionicons name="refresh" size={11} color="#f97316" />
                   </TouchableOpacity>
                 )}
               </View>
             </View>
             {tooltip === "pitch" && <View style={styles.tipBox}><Text style={styles.tipTxt}>{TIPS.pitch}</Text></View>}
-            <Slider value={pitchHz} min={415} max={466} step={1} onChange={setPitchHz} color="#f97316" />
+            <Slider value={pitchCents} min={-100} max={20} step={1} onChange={setPitchCents} color="#f97316" />
             <View style={styles.chips}>
-              {[415, 432, 440, 444, 446, 466].map(v => (
-                <TouchableOpacity key={v} onPress={() => setPitchHz(v)} style={[styles.chip, pitchHz === v && styles.chipOn]}>
-                  <Text style={[styles.chipTxt, pitchHz === v && styles.chipTxtOn]}>{v}</Text>
+              {PITCH_STANDARDS.map(({ cents, label }) => (
+                <TouchableOpacity key={cents} onPress={() => setPitchCents(cents)} style={[styles.chip, pitchCents === cents && styles.chipOn]}>
+                  <Text style={[styles.chipTxt, pitchCents === cents && styles.chipTxtOn]}>{label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -607,26 +652,28 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
           <View style={styles.row}>
             <View style={styles.rowHead}>
               <View style={styles.lblRow}>
-                <Text style={styles.lbl}>Reverb</Text>
+                <Text style={styles.lbl}>Reverb RT60</Text>
                 <TouchableOpacity onPress={() => showTip("reverb")} style={styles.infoBtn}>
                   <Ionicons name="information-circle-outline" size={14} color={tooltip === "reverb" ? "#34d399" : "#3a4e6a"} />
                 </TouchableOpacity>
               </View>
               <View style={styles.rowHeadRight}>
-                <Text style={[styles.val, reverb > 0 && styles.valOn]}>{Math.round(reverb)}%</Text>
-                {reverb > 0 && (
-                  <TouchableOpacity onPress={() => setReverb(0)} style={styles.inlineReset}>
+                <Text style={[styles.val, rt60 > 0 && styles.valOn]}>
+                  {rt60.toFixed(1)}s{rt60 > 0 ? `  ${RT60_STANDARDS.find(r => r.s === rt60)?.name ?? ""}` : "  Sec"}
+                </Text>
+                {rt60 > 0 && (
+                  <TouchableOpacity onPress={() => setRt60(0)} style={styles.inlineReset}>
                     <Ionicons name="refresh" size={11} color="#34d399" />
                   </TouchableOpacity>
                 )}
               </View>
             </View>
             {tooltip === "reverb" && <View style={styles.tipBox}><Text style={styles.tipTxt}>{TIPS.reverb}</Text></View>}
-            <Slider value={reverb} min={0} max={100} step={1} onChange={setReverb} color="#34d399" />
+            <Slider value={rt60} min={0} max={3} step={0.1} onChange={setRt60} color="#34d399" />
             <View style={styles.chips}>
-              {[0, 20, 40, 60, 80, 100].map(v => (
-                <TouchableOpacity key={v} onPress={() => setReverb(v)} style={[styles.chip, reverb === v && styles.chipOn]}>
-                  <Text style={[styles.chipTxt, reverb === v && styles.chipTxtOn]}>{v}%</Text>
+              {RT60_STANDARDS.map(({ s, label, name }) => (
+                <TouchableOpacity key={s} onPress={() => setRt60(s)} style={[styles.chip, rt60 === s && styles.chipOn]}>
+                  <Text style={[styles.chipTxt, rt60 === s && styles.chipTxtOn]}>{label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
