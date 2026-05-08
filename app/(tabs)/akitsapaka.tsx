@@ -2,74 +2,124 @@ import { songs } from "@/assets/data/songs";
 import DropdownPicker from "@/components/akitsapaka/DropdownPicker";
 import ShuffleButton from "@/components/akitsapaka/ShuffleButton";
 import SongCard from "@/components/akitsapaka/SongCard";
-import { Header } from "@/components/Header";
-
+import Screen from "@/components/Screen";
+import { isTablet, rf, rs } from "@/utils/responsive";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AkitsapakaScreen() {
   const { count } = useLocalSearchParams();
-  const initialCount = count ? Math.max(1, Math.min(10, Number(count))) : 1;
-
-  const [countNumber, setCountNumber] = useState<number>(initialCount);
+  const initCount = count ? Math.max(1, Math.min(10, Number(count))) : 1;
+  const [countNumber, setCountNumber] = useState(initCount);
   const [randomSongs, setRandomSongs] = useState<{ id: string; title: string }[]>([]);
 
-  const pickRandom = () => {
-    if (!songs || songs.length === 0) return;
+  const pickRandom = useCallback(() => {
+    if (!songs.length) return;
+    const picked = [...songs]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, countNumber)
+      .map((s, i) => typeof s === "object" && s.title
+        ? { id: s.id || String(i), title: s.title }
+        : { id: String(i), title: String(s) }
+      );
+    setRandomSongs(picked);
+  }, [countNumber]);
 
-    const shuffled = [...songs].sort(() => Math.random() - 0.5);
-
-    const selected = shuffled.slice(0, countNumber).map((s, index) => {
-      if (typeof s === "object" && s.title) {
-        return { id: s.id || String(index), title: s.title };
-      } else {
-        return { id: String(index), title: String(s) };
-      }
-    });
-
-    setRandomSongs(selected);
-  };
-
-  useEffect(() => pickRandom(), [countNumber]);
+  useEffect(() => { pickRandom(); }, [pickRandom]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Header
-        title="Akitsapaka"
-        showBack
-      />
-      <View style={styles.container1}>
-        <Text style={styles.subtitle}>
-          {countNumber === 1
-            ? "Hira iray voafantina kisendrasendra"
-            : `${countNumber} hira voafantina kisendrasendra`}
-        </Text>
-
-        <DropdownPicker value={countNumber} onChange={setCountNumber} max={10} />
-
-        <ShuffleButton onPress={pickRandom} />
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor="#020118" />
+      <Screen>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Akitsapaka</Text>
+          <Text style={styles.sub}>Hira voafantina kisendrasendra</Text>
+        </View>
+        <View style={styles.diceBadge}>
+          <Ionicons name="dice" size={rs(22)} color="#facc15" />
+        </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.results}>
-          {randomSongs.map((song) => (
-            <SongCard key={song.id} id={song.id} title={song.title} />
+      {/* ── Controls card ── */}
+      <View style={styles.controlCard}>
+        <Text style={styles.controlLabel}>Isan'ny hira hovidina</Text>
+        <View style={styles.controlRow}>
+          <DropdownPicker value={countNumber} onChange={setCountNumber} max={10} />
+          <ShuffleButton onPress={pickRandom} />
+        </View>
+      </View>
+
+      {/* ── Results header ── */}
+      <View style={styles.resHeader}>
+        <View style={styles.resLine} />
+        <Text style={styles.resLabel}>
+          {countNumber === 1 ? "1 hira voafantina" : `${countNumber} hira voafantina`}
+        </Text>
+        <View style={styles.resLine} />
+      </View>
+
+      {/* ── Results ── */}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={isTablet ? styles.gridTablet : undefined}>
+          {randomSongs.map((s, i) => (
+            <View key={s.id} style={isTablet ? styles.gridItem : undefined}>
+              <SongCard id={s.id} title={s.title} index={i + 1} />
+            </View>
           ))}
         </View>
+        <View style={{ height: rs(110) }} />
       </ScrollView>
+      </Screen>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container1: { alignItems: "center" },
-  container: { flex: 1, backgroundColor: "#111" },
-  scrollContainer: { alignItems: "center", padding: 20 },
-  subtitle: { fontSize: 18, color: "#aaa", marginVertical: 20, textAlign: "center" },
-  results: { width: "100%", maxWidth: 400, gap: 16, marginBottom: 50 },
+  safe: { flex: 1, backgroundColor: "#020118" },
+
+  header: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: rs(20), paddingVertical: rs(16),
+    borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.07)",
+  },
+  title: { fontSize: rf(26), fontWeight: "800", color: "#fff" },
+  sub: { fontSize: rf(12), color: "#b5c6d6", marginTop: rs(3) },
+  diceBadge: {
+    width: rs(44), height: rs(44), borderRadius: rs(22),
+    backgroundColor: "rgba(250,204,21,0.08)",
+    borderWidth: 1, borderColor: "rgba(250,204,21,0.2)",
+    justifyContent: "center", alignItems: "center",
+  },
+
+  controlCard: {
+    marginHorizontal: rs(16), marginTop: rs(16),
+    backgroundColor: "#06033a",
+    borderRadius: rs(18),
+    padding: rs(16),
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
+    gap: rs(12),
+  },
+  controlLabel: { fontSize: rf(11), color: "#b5c6d6", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  controlRow: { flexDirection: "row", alignItems: "center", gap: rs(12) },
+
+  resHeader: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: rs(16), marginTop: rs(20), marginBottom: rs(12), gap: rs(10),
+  },
+  resLine: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.07)" },
+  resLabel: { fontSize: rf(10), color: "#5a6e90", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+
+  scroll: { paddingHorizontal: rs(16), gap: rs(10) },
+
+  gridTablet: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: rs(10),
+  },
+  gridItem: { width: "48.5%" },
 });

@@ -46,7 +46,7 @@ export const songs: Song[] = [
       Fa ny fahasoavanao no nahatoy izao
       Dia ekenay izay fitantananao
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "2",
@@ -76,7 +76,7 @@ export const songs: Song[] = [
       Ny omaly sy anio, ny ampitso efa an-tananao
       Ireo sedrako ampio, fa mampandresy Ianao
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "3",
@@ -107,7 +107,7 @@ export const songs: Song[] = [
       Ny firenenay Tompo ô iasao
       Mangataka aho @ anaranao
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "5",
@@ -133,8 +133,8 @@ export const songs: Song[] = [
       Atanjao ny finoana, ka avia manantona
       Raha tinao ny ho tafita dia aza hodina tsy hita ilay fitiavany anao
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA
-    `
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA
+    `,
   },
   {
     id: "6",
@@ -168,7 +168,7 @@ Na andro migaina na koa mamanala ny fiainako
 Fantatrao Tompo ny mahasoa ahy
 Ekeko izay fomba hitondranao ahy(×2)
 
-RANTSANA FANATENANA MALAZA FAHAZAVANA
+RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -196,7 +196,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Tsy atao forcé, iz koa anao tsy mety
       Fiainanao io anie ho rava vetivety
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA
 
     `,
   },
@@ -233,7 +233,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Hitory ny Anaranao Jesosy ô
       Iraho fa vonon'aho ny andeha
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -268,7 +268,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Mivalo aho,mivoady ihany koa
       Tsy hiemotra aho na inona manjo....Hiaraka Aminao
 
-      RANTSANA FANATENANA MALAZA FAHAZAVA`,
+      RANTSANA FANANTENANA MALAZA FAHAZAVA`,
   },
   {
     id: "10",
@@ -300,7 +300,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Aza manao fanahy hinina sao tratra ao aoriana ka hanenina ianao
       Fa Jesoa mampanatena fa anio dia omena anao ilay 
       
-      RANTSANA FANATENANA MALAZA FAHAZAVANA
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA
 `,
   },
   {
@@ -336,7 +336,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Anio tsapanay ilay fiadanana
         Ilay zanaky mazava tonga hanome anay fiainana
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -371,7 +371,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Hitety havoana, na voky na ho noana
         Mitsangàna mihazavaha, Jesoa Tompo no hitahy fa......
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -397,7 +397,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Raha sitrakao atsangano fa lavo
         Ity fireneko
                 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -427,7 +427,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Tsy omeko Tompo hafa intsony ankotranao
         Indro Jesoa ô ny foko hanjakao
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -461,7 +461,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Ka ho vontosana filazantsara
         I Madagasikara
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -485,7 +485,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Ka vonona hanoa, hanao izay rehetra sitrakao
         Ka ny mombanay rehetra an-tananao
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -519,7 +519,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Ambarambarako anô, lay paradisa vaovao
         Andô sô anao taraiky ê, niany ty tapaho decision FA
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -538,7 +538,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Ravo ravo koa ny saina
         Tena sambatra aho foana ny taraina
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -562,7 +562,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Izay rehetra ataonao ataovy @ anarany
         Fa tena tiany ianao malalany
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -592,7 +592,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Ô! Vontosy filazan-tsara
         Ity nosy Madagasikara
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -612,10 +612,10 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
 
         Arabaina manontolo
         Na tanora na fotsy volo
-        Rantsana fanatenana
+        Rantsana FANANTENANA
         Ny manano mbola tsara
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -643,7 +643,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         ‘zay rendrarendra efa nafoiko daholo
         Omeko Anao ny amiko manontolo
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -671,7 +671,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Ireo toetra ratsy efa nafoiko avokoa
         Anio aho Tompo ô hanara-dia Anao
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -700,7 +700,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Mba raiso aho ho zandrinao
         Ka ny lalanao no lalako
 
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -734,7 +734,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Ny hany ataoko ho rehareha,tsy misy afatsy ny Anaranao
         Na anaty ady sarotra dia Ianao manomana lalam-baovao
         
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -788,7 +788,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Fa n’aiza n’aiza aleha, Jesosy tsy manary
         Izy efa vonona hanome fiainana tsara sy lavorary
         
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -829,7 +829,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Fahamarinana sy fiainana hampiadana ny vahoaka
         Koa ho anao izay zatra nihinana aok'izay fa ratsy ny toaka
         
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -870,7 +870,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
         Na fitsapana nifanesy, ireo no nentiny nanefy
         Oooooo, nampivoaka ahy ho mpandresy
         
-        RANTSANA FANATENANA MALAZA FAHAZAVANA
+        RANTSANA FANANTENANA MALAZA FAHAZAVANA
     `,
   },
   {
@@ -907,7 +907,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Ry mpivahiny ô mba saino kely anie
       Fa ny ora sy fotoana tsy fantatrao re!
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "30",
@@ -939,7 +939,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Efa fantatro f’Ianao Jesoa Ianao mitantana ahy ê
       Safidiko ny ho Anao ry Ray
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "31",
@@ -991,7 +991,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Raha ny zanaka no hahafaka anareo a
       Dia ho afaka tokoa ianareo a
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "32",
@@ -1020,7 +1020,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Efa niova fo e, hafa ny taloha e
       Ka tafatoetra ny amiko
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "33",
@@ -1038,7 +1038,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       mitarika anay hoe mandrosoa
       
       Ô tongasoa ê! Ao an-kanana
-      izahay rantsana fanatenana
+      izahay rantsana FANANTENANA
       Hiroso hatrany ê! Tsy hisalasala
       Ho malaza tena fahazavana
       
@@ -1047,7 +1047,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Miara-mandeha @ Jesoa
       Zahay manaiky an’I Jesoa
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "34",
@@ -1075,7 +1075,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       'lay fitiavanao tsy niala tamiko
       Jesosy Ianao no tokiko
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "35",
@@ -1107,11 +1107,11 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Jesosy no tiko ambara vonon-kanova ny fiainanao
       
       EEEH!! Tapaho hoa ny hevitrao
-      Avy manantona fa rantsana fanatenana no miantso anao
+      Avy manantona fa rantsana FANANTENANA no miantso anao
       Zay efa hanainga mintsy efa maika ho tonga any @ arrivé
       Zay tsy miandry ny tsy afaka, zay taraiky any désolé
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "36",
@@ -1146,7 +1146,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Ny sori-dalan'izay nomeny io arahina hatrany ê
       Fa Izy izay rehefa miteny tsisy hatohitra izany
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "37",
@@ -1174,7 +1174,7 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       Fa Izaho no tsy miova hoy ny Ray
       Tsy miova aho omaly anio mandrakizay
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
   {
     id: "38",
@@ -1209,6 +1209,6 @@ RANTSANA FANATENANA MALAZA FAHAZAVANA
       N’aiza n’aiza ê! Na inona atao
       Andriamanitra homba ahy sy ianao
 
-      RANTSANA FANATENANA MALAZA FAHAZAVANA`
+      RANTSANA FANANTENANA MALAZA FAHAZAVANA`,
   },
 ];

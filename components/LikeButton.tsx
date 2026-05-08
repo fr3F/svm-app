@@ -15,18 +15,17 @@ type LikeButtonProps = {
 export default function LikeButton({
   liked = false,
   onPress,
-  size = 30,
+  size = 26,
   activeColor = "#facc15",
-  inactiveColor = "#fff",
+  inactiveColor = "#5a6e90",
 }: LikeButtonProps) {
   const [internalLiked, setInternalLiked] = useState(liked);
-  const animRef = useRef<Animatable.View & { bounceIn: () => void }>(null);
+  const animRef = useRef<Animatable.View & { animate: any }>(null);
   const isLiked = onPress ? liked : internalLiked;
 
   const handlePress = () => {
     const newState = !isLiked;
 
-    // Toast amin'ny malagasy
     Toast.show({
       type: newState ? "success" : "info",
       text1: newState ? "Tiako ity hira ity !" : "Tsy tiako intsony",
@@ -37,13 +36,11 @@ export default function LikeButton({
       visibilityTime: 1500,
     });
 
-    // Animation du cœur
     if (animRef.current) {
-      animRef.current.animate({
-        0: { scale: 1 },
-        0.5: { scale: 1.4 },
-        1: { scale: 1 },
-      }, 500);
+      animRef.current.animate(
+        { 0: { scale: 1 }, 0.5: { scale: 1.5 }, 1: { scale: 1 } },
+        400
+      );
     }
 
     if (onPress) onPress(newState);
@@ -65,7 +62,7 @@ export default function LikeButton({
 
 const styles = StyleSheet.create({
   button: {
-    padding: 8,
+    padding: 6,
     borderRadius: 12,
   },
 });

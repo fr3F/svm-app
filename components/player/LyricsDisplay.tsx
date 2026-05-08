@@ -1,42 +1,46 @@
-import { ThemedText } from "@/components/ThemedText";
+import { rf, rs } from "@/utils/responsive";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-interface LyricsDisplayProps {
-  lyrics?: string;
-}
+interface Props { lyrics?: string; }
 
-export default function LyricsDisplay({ lyrics }: LyricsDisplayProps) {
+export default function LyricsDisplay({ lyrics }: Props) {
   if (!lyrics) return null;
 
+  const lines = lyrics.replace(/@/g, "").split("\n");
+
   return (
-    <View style={styles.container}>
-      <ThemedText color="grayWhite" style={styles.text}>
-        {lyrics
-          .replace(/@/g, "")
-          .split("\n")
-          .map((line, i) => (
-            <React.Fragment key={i}>
-              {line}
-              {"\n"}
-            </React.Fragment>
-          ))}
-      </ThemedText>
+    <View style={styles.wrap}>
+      {lines.map((raw, i) => {
+        const line = raw.trim();
+        if (!line) return <View key={i} style={{ height: rs(10) }} />;
+
+        const isChorus = line.startsWith("R:") || line.startsWith("Fiv:");
+
+        return (
+          <Text key={i} style={[styles.line, isChorus && styles.lineChorus]}>
+            {line}
+          </Text>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 0,  
-    right:16,
-    top:-40
+  wrap: { width: "90%", alignSelf: "center", alignItems: "center", paddingHorizontal: rs(8) },
+
+  line: {
+    fontSize: rf(16),
+    lineHeight: rf(28),
+    textAlign: "center",
+    fontWeight: "400",
+    color: "#c8d8e8",
+    letterSpacing: 0.2,
+    marginTop: rs(2),
   },
-  text: {
-    fontSize: 20,
-    lineHeight: 36,          
-    textAlign: "center",    
-    fontWeight: "500",
-    color: "#eee",           // si tu veux forcer la couleur ici
+  lineChorus: {
+    color: "#facc15",
+    fontWeight: "700",
   },
 });

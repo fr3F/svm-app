@@ -1,57 +1,24 @@
+import { rf, rs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import {
-  Platform,
-  StyleSheet,
-  TextInput,
-  TextInputProps,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, StyleSheet, TextInput, TextInputProps, TouchableOpacity, View } from "react-native";
 
-interface SearchInputProps
-  extends Omit<TextInputProps, "value" | "onChangeText"> {
+interface SearchInputProps extends Omit<TextInputProps, "value" | "onChangeText"> {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  colors: {
-    black: string;
-    grayWhite: string;
-  };
 }
 
-const SearchInput: React.FC<SearchInputProps> = ({
-  value,
-  onChangeText,
-  placeholder = "Karoka hira... (ohatra: Longoko)",
-  colors,
-  ...rest
-}) => {
+export default function SearchInput({ value, onChangeText, placeholder = "Karoka hira...", ...rest }: SearchInputProps) {
   const [focused, setFocused] = useState(false);
-  const clearText = () => onChangeText("");
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.grayWhite,
-          borderColor: focused ? colors.black + "55" : "transparent",
-          shadowOpacity: focused ? 0.22 : 0.12,
-        },
-      ]}
-    >
-      <Ionicons
-        name="search"
-        size={22}
-        color={colors.black + "88"}
-        style={styles.icon}
-      />
-
+    <View style={[styles.wrap, focused && styles.wrapFocused]}>
+      <Ionicons name="search" size={rs(18)} color={focused ? "#facc15" : "#5a6e90"} style={styles.icon} />
       <TextInput
-        style={[styles.input, { color: colors.black }]}
+        style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor={colors.black + "66"}
+        placeholderTextColor="#5a6e90"
         value={value}
         onChangeText={onChangeText}
         autoCorrect={false}
@@ -61,55 +28,36 @@ const SearchInput: React.FC<SearchInputProps> = ({
         onBlur={() => setFocused(false)}
         {...rest}
       />
-
       {value.length > 0 && (
-        <TouchableOpacity onPress={clearText} style={styles.clearButton}>
-          <Ionicons
-            name="close-circle"
-            size={22}
-            color={colors.black + "66"}
-          />
+        <TouchableOpacity onPress={() => onChangeText("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="close-circle" size={rs(18)} color="#5a6e90" />
         </TouchableOpacity>
       )}
     </View>
   );
-};
-
-export default SearchInput;
+}
 
 const styles = StyleSheet.create({
-  container: {
+  wrap: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%",
-    borderRadius: 25,
-    paddingHorizontal: 16,
-    height: 52,
-    marginBottom: 15,
-
-    // Ombre douce premium
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-
-    borderWidth: 1.4,
+    height: rs(46),
+    borderRadius: rs(14),
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: rs(13),
+    marginBottom: rs(10),
   },
-
-  icon: {
-    marginRight: 10,
-    opacity: 0.8,
+  wrapFocused: {
+    borderColor: "rgba(250,204,21,0.55)",
+    backgroundColor: "rgba(250,204,21,0.04)",
   },
-
+  icon: { marginRight: rs(8) },
   input: {
     flex: 1,
-    fontSize: 15.5,
-    paddingVertical: Platform.OS === "ios" ? 12 : 8,
-    letterSpacing: 0.2,
-  },
-
-  clearButton: {
-    paddingLeft: 8,
+    fontSize: rf(14),
+    color: "#fff",
+    paddingVertical: Platform.OS === "ios" ? rs(10) : rs(6),
   },
 });

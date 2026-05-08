@@ -1,24 +1,42 @@
 export const Colors = {
   light: {
+    bg: "#020118",
+    surface: "#06033a",
+    card: "#0f056b",
+    primary: "#facc15",
+    accent: "#facc15",
+    text: "#ffffff",
+    textSec: "#b5c6d6",
+    textMuted: "#5a6e90",
+    border: "#1a0d80",
+    // compat aliases
     bleu: "#0f056b",
-    tint: "#DC0A2D",
-    grayDark: "#2D2D2D",
-    grayMedium: "#6C6C6C",
-    grayLight: "#AFAFAF",
-    grayBackground: "#F5F5F5",
-    grayWhite: "#FFFFFF",
-    black:"#000000"
-
+    grayDark: "#ffffff",
+    grayMedium: "#b5c6d6",
+    grayLight: "#5a6e90",
+    grayBackground: "#0f056b",
+    grayWhite: "#ffffff",
+    black: "#020118",
+    tint: "#facc15",
   },
-
   dark: {
+    bg: "#020118",
+    surface: "#06033a",
+    card: "#0f056b",
+    primary: "#facc15",
+    accent: "#facc15",
+    text: "#ffffff",
+    textSec: "#b5c6d6",
+    textMuted: "#5a6e90",
+    border: "#1a0d80",
+    // compat aliases
     bleu: "#0f056b",
-    tint: "#DC0A2D",
-    grayDark: "#FFFFFF",
-    grayMedium: "#CCCCCC",
-    grayLight: "#888888",
-    grayBackground: "#1A1A1A",
-    grayWhite: "#FFFFFF",
-    black:"#000000"
+    grayDark: "#ffffff",
+    grayMedium: "#b5c6d6",
+    grayLight: "#5a6e90",
+    grayBackground: "#0f056b",
+    grayWhite: "#ffffff",
+    black: "#020118",
+    tint: "#facc15",
   },
 };

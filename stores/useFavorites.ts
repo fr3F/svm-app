@@ -57,7 +57,7 @@ export function useFavorites() {
     useEffect(() => {
         const callback = () => forceUpdate(t => t + 1);
         listeners.add(callback);
-        return () => listeners.delete(callback);
+        return () => { listeners.delete(callback); };
     }, []);
 
     const toggle = async (id: string) => {
