@@ -82,7 +82,7 @@ export default function InfoTab() {
               <Ionicons name="star" size={rs(18)} color="#facc15" />
             </View>
             <View>
-              <Text style={styles.writerLabel}>Namorona ny SVM Malaza Fahazavana</Text>
+              <Text style={styles.writerLabel}>Namorona ny SVM</Text>
               <Text style={styles.writerName}>Casmir</Text>
             </View>
           </View>
