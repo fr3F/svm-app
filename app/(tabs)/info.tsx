@@ -75,6 +75,19 @@ export default function InfoTab() {
           </TouchableOpacity>
         </View>
 
+        {/* ── Founder card ── */}
+        <View style={styles.writerCard}>
+          <View style={styles.writerLeft}>
+            <View style={[styles.writerIcon, styles.writerIconFounder]}>
+              <Ionicons name="star" size={rs(18)} color="#facc15" />
+            </View>
+            <View>
+              <Text style={styles.writerLabel}>Namorona ny SVM Malaza Fahazavana</Text>
+              <Text style={styles.writerName}>Casmir</Text>
+            </View>
+          </View>
+        </View>
+
         {/* ── Song writer card ── */}
         <View style={styles.writerCard}>
           <View style={styles.writerLeft}>
@@ -173,6 +186,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(250,204,21,0.08)",
     borderWidth: 1, borderColor: "rgba(250,204,21,0.18)",
     justifyContent: "center", alignItems: "center",
+  },
+  writerIconFounder: {
+    backgroundColor: "rgba(250,204,21,0.15)",
+    borderColor: "rgba(250,204,21,0.35)",
   },
   writerLabel: { fontSize: rf(11), color: "#5a6e90", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 },
   writerName: { fontSize: rf(16), fontWeight: "800", color: "#fff", marginTop: rs(2) },
