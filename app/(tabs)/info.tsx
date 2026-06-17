@@ -2,6 +2,13 @@ import { rf, rs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Linking, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BAR_H } from "@/components/TabBar";
 
@@ -32,26 +39,42 @@ const FAQ = [
   },
 ];
 
+const TIMING = { duration: 280, easing: Easing.inOut(Easing.quad) };
+
 function FaqItem({ item, index }: { item: { q: string; a: string }; index: number }) {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const progress = useSharedValue(0);
+
+  const toggle = () => {
+    const next = !isOpen;
+    setIsOpen(next);
+    progress.value = withTiming(next ? 1 : 0, TIMING);
+  };
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${interpolate(progress.value, [0, 1], [0, 180])}deg` }],
+  }));
+
+  const bodyStyle = useAnimatedStyle(() => ({
+    maxHeight: interpolate(progress.value, [0, 1], [0, 300]),
+    opacity: interpolate(progress.value, [0, 0.4, 1], [0, 0, 1]),
+    overflow: "hidden",
+  }));
+
   return (
     <View style={styles.faqItem}>
-      <TouchableOpacity
-        style={styles.faqQ}
-        activeOpacity={0.75}
-        onPress={() => setOpen(o => !o)}
-      >
+      <TouchableOpacity style={styles.faqQ} activeOpacity={0.75} onPress={toggle}>
         <View style={styles.faqNum}>
           <Text style={styles.faqNumText}>{index + 1}</Text>
         </View>
         <Text style={styles.faqQText}>{item.q}</Text>
-        <Ionicons
-          name={open ? "chevron-up" : "chevron-down"}
-          size={rs(16)}
-          color="#5a6e90"
-        />
+        <Animated.View style={chevronStyle}>
+          <Ionicons name="chevron-down" size={rs(16)} color="#5a6e90" />
+        </Animated.View>
       </TouchableOpacity>
-      {open && <Text style={styles.faqA}>{item.a}</Text>}
+      <Animated.View style={bodyStyle}>
+        <Text style={styles.faqA}>{item.a}</Text>
+      </Animated.View>
     </View>
   );
 }
