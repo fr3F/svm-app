@@ -6,33 +6,51 @@ import Screen from "@/components/Screen";
 import { isTablet, rf, rs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { BAR_H } from "@/components/TabBar";
 
 export default function AkitsapakaScreen() {
+  const insets = useSafeAreaInsets();
   const { count } = useLocalSearchParams();
   const initCount = count ? Math.max(1, Math.min(10, Number(count))) : 1;
   const [countNumber, setCountNumber] = useState(initCount);
   const [randomSongs, setRandomSongs] = useState<{ id: string; title: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const showResults = (picked: { id: string; title: string }[]) => {
+    setRandomSongs(picked);
+    setLoading(false);
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const pickRandom = useCallback(() => {
     if (!songs.length) return;
-    const picked = [...songs]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, countNumber)
-      .map((s, i) => typeof s === "object" && s.title
-        ? { id: s.id || String(i), title: s.title }
-        : { id: String(i), title: String(s) }
-      );
-    setRandomSongs(picked);
+    setLoading(true);
+    setTimeout(() => {
+      const picked = [...songs]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, countNumber)
+        .map((s, i) => typeof s === "object" && s.title
+          ? { id: s.id || String(i), title: s.title }
+          : { id: String(i), title: String(s) }
+        );
+      showResults(picked);
+    }, 700);
   }, [countNumber]);
 
   useEffect(() => { pickRandom(); }, [pickRandom]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#020118" />
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <Screen>
       {/* Header */}
       <View style={styles.header}>
@@ -64,16 +82,27 @@ export default function AkitsapakaScreen() {
       </View>
 
       {/* ── Results ── */}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={isTablet ? styles.gridTablet : undefined}>
-          {randomSongs.map((s, i) => (
-            <View key={s.id} style={isTablet ? styles.gridItem : undefined}>
-              <SongCard id={s.id} title={s.title} index={i + 1} />
-            </View>
-          ))}
+      {loading ? (
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color="#facc15" />
+          <Text style={styles.loadingText}>Mifantina...</Text>
         </View>
-        <View style={{ height: rs(110) }} />
-      </ScrollView>
+      ) : (
+        <Animated.ScrollView
+          style={{ flex: 1, opacity: fadeAnim }}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={isTablet ? styles.gridTablet : undefined}>
+            {randomSongs.map((s, i) => (
+              <View key={s.id} style={isTablet ? styles.gridItem : undefined}>
+                <SongCard id={s.id} title={s.title} index={i + 1} />
+              </View>
+            ))}
+          </View>
+          <View style={{ height: BAR_H + Math.min(insets.bottom, rs(48)) + rs(10) }} />
+        </Animated.ScrollView>
+      )}
       </Screen>
     </SafeAreaView>
   );
@@ -115,6 +144,19 @@ const styles = StyleSheet.create({
   resLabel: { fontSize: rf(10), color: "#5a6e90", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
 
   scroll: { paddingHorizontal: rs(16), gap: rs(10) },
+
+  loadingBox: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: rs(14),
+  },
+  loadingText: {
+    fontSize: rf(13),
+    color: "#5a6e90",
+    fontWeight: "600",
+    letterSpacing: 0.4,
+  },
 
   gridTablet: {
     flexDirection: "row",
