@@ -67,22 +67,22 @@ export default function InfoTab() {
 
         {/* ── Developer card ── */}
         <View style={styles.devCard}>
-          <View style={styles.devIconRing}>
-            <View style={styles.devIconInner}>
-              <Ionicons name="code-slash" size={rs(28)} color="#facc15" />
+          <View style={styles.devLeft}>
+            <View style={styles.devIcon}>
+              <Ionicons name="code-slash" size={rs(18)} color="#facc15" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.devLabel}>Mpanamboatra ny apk</Text>
+              <Text style={styles.devName}>Zoky Fitiavana</Text>
+              <Text style={styles.devPseudo}>@frazakarivony</Text>
             </View>
           </View>
-
-          <Text style={styles.devLabel}>Mpanamboatra ny apk</Text>
-          <Text style={styles.devName}>Zoky Fitiavana</Text>
-          <Text style={styles.devPseudo}>@frazakarivony</Text>
-
           <TouchableOpacity
             style={styles.siteBtn}
             activeOpacity={0.75}
             onPress={() => Linking.openURL("https://frazakarivony.vercel.app/")}
           >
-            <Ionicons name="globe-outline" size={rs(14)} color="#020118" />
+            <Ionicons name="globe-outline" size={rs(12)} color="#020118" />
             <Text style={styles.siteBtnText}>frazakarivony.vercel.app</Text>
           </TouchableOpacity>
         </View>
@@ -144,34 +144,29 @@ const styles = StyleSheet.create({
 
   devCard: {
     backgroundColor: "#06033a",
-    borderRadius: rs(20),
-    borderWidth: 1, borderColor: "rgba(250,204,21,0.2)",
-    alignItems: "center",
-    paddingVertical: rs(28), paddingHorizontal: rs(20),
-    gap: rs(6),
+    borderRadius: rs(16),
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.07)",
+    padding: rs(16), gap: rs(10),
   },
-  devIconRing: {
-    width: rs(80), height: rs(80), borderRadius: rs(40),
-    borderWidth: 1, borderColor: "rgba(250,204,21,0.2)",
-    justifyContent: "center", alignItems: "center",
-    marginBottom: rs(6),
-  },
-  devIconInner: {
-    width: rs(62), height: rs(62), borderRadius: rs(31),
+  devLeft: { flexDirection: "row", alignItems: "center", gap: rs(14) },
+  devIcon: {
+    width: rs(44), height: rs(44), borderRadius: rs(14),
     backgroundColor: "rgba(250,204,21,0.08)",
+    borderWidth: 1, borderColor: "rgba(250,204,21,0.18)",
     justifyContent: "center", alignItems: "center",
+    flexShrink: 0,
   },
   devLabel: { fontSize: rf(11), color: "#5a6e90", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 },
-  devName: { fontSize: rf(20), fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
-  devPseudo: { fontSize: rf(13), color: "#facc15", fontWeight: "600" },
+  devName: { fontSize: rf(15), fontWeight: "800", color: "#fff", marginTop: rs(1) },
+  devPseudo: { fontSize: rf(12), color: "#facc15", fontWeight: "600", marginTop: rs(1) },
   siteBtn: {
-    flexDirection: "row", alignItems: "center", gap: rs(6),
-    marginTop: rs(8),
+    flexDirection: "row", alignItems: "center", gap: rs(5),
+    alignSelf: "flex-start",
     backgroundColor: "#facc15",
-    paddingHorizontal: rs(16), paddingVertical: rs(9),
-    borderRadius: rs(20),
+    paddingHorizontal: rs(12), paddingVertical: rs(6),
+    borderRadius: rs(16),
   },
-  siteBtnText: { fontSize: rf(12), fontWeight: "700", color: "#020118" },
+  siteBtnText: { fontSize: rf(11), fontWeight: "700", color: "#020118" },
 
   writerCard: {
     backgroundColor: "#06033a",
