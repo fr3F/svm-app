@@ -4,11 +4,23 @@ import Screen from "@/components/Screen";
 import SearchInput from "@/components/SearchInput";
 import SongList from "@/components/SongList";
 import { rf, rs } from "@/utils/responsive";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeTab() {
+  const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
@@ -26,82 +38,115 @@ export default function HomeTab() {
     const q = searchText.trim().toLowerCase();
     return songs.filter((s) => {
       const matchType = selectedType === null || s.type === selectedType;
-      const matchSearch = !q || s.title.toLowerCase().includes(q) || (s.lyrics?.toLowerCase().includes(q) ?? false);
+      const matchSearch =
+        !q ||
+        s.title.toLowerCase().includes(q) ||
+        (s.lyrics?.toLowerCase().includes(q) ?? false);
       return matchType && matchSearch;
     });
   }, [searchText, selectedType]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#020118" />
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <Screen>
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <View style={styles.logoWrap}>
-          <View style={styles.logoGlow} />
-          <Image
-            source={require("@/assets/images/svm.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-        <View style={styles.headerMid}>
-          <Text style={styles.appName}>SVM</Text>
-          <Text style={styles.appDesc} numberOfLines={1}>Rantsana FANANTENANA</Text>
-        </View>
-        <View style={styles.headerStats}>
-          <Text style={styles.statBadge} allowFontScaling={false}>{counts.all} hira</Text>
-        </View>
-      </View>
-
-      {/* ── Stats chips ── */}
-      <View style={styles.chips}>
-        <View style={styles.chip}>
-          <View style={[styles.chipDot, { backgroundColor: "#facc15" }]} />
-          <Text style={styles.chipText}>{counts.playback} Playback</Text>
-        </View>
-        <View style={styles.chipDivider} />
-        <View style={styles.chip}>
-          <View style={[styles.chipDot, { backgroundColor: "#b5c6d6" }]} />
-          <Text style={styles.chipText}>{counts.lyrics} Lyrics</Text>
-        </View>
-      </View>
-
-      {/* ── Divider ── */}
-      <View style={styles.divider} />
-
-      {/* ── Search + Filter + List ── */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "android" ? rs(10) : 0}
-      >
-        <View style={styles.controls}>
-          <SearchInput
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-          <FilterType
-            selected={selectedType}
-            onSelect={setSelectedType}
-            counts={counts}
-          />
-        </View>
-
-        {filteredSongs.length > 0 ? (
-          <SongList data={filteredSongs} />
-        ) : (
-        <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
-            <Text style={{ fontSize: rf(36) }}>🎵</Text>
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View style={styles.logoWrap}>
+            <View style={styles.logoGlow} />
+            <Image
+              source={require("@/assets/images/svm.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
-          <Text style={styles.emptyTitle}>Tsy hita</Text>
-          <Text style={styles.emptySub}>
-            Tsy misy hira mifanaraka amin'ny fikarohana
-          </Text>
+          <View style={styles.headerMid}>
+            <Text style={styles.appName}>SVM</Text>
+            <Text style={styles.appDesc} numberOfLines={1}>
+              Rantsana FANANTENANA
+            </Text>
+          </View>
+          <View style={styles.headerStats}>
+            <Text style={styles.statBadge} allowFontScaling={false}>
+              {counts.all} hira
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push("/info")}
+            style={styles.infoBtn}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="information-circle-outline" size={rs(22)} color="#b5c6d6" />
+          </TouchableOpacity>
         </View>
+
+        {/* ── Stats chips ── */}
+        <View style={styles.chips}>
+          <View style={styles.chip}>
+            <View style={[styles.chipDot, { backgroundColor: "#facc15" }]} />
+            <Text style={styles.chipText}>{counts.playback} Playback</Text>
+          </View>
+          <View style={styles.chipDivider} />
+          <View style={styles.chip}>
+            <View style={[styles.chipDot, { backgroundColor: "#b5c6d6" }]} />
+            <Text style={styles.chipText}>{counts.lyrics} Lyrics</Text>
+          </View>
+        </View>
+
+        {/* ── Divider ── */}
+        <View style={styles.divider} />
+
+        {/* ── Search + Filter + List ── */}
+        {/* iOS: KeyboardAvoidingView pushes content. Android: plain View (Android handles keyboard natively) */}
+        {Platform.OS === "ios" ? (
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+            <View style={styles.controls}>
+              <SearchInput value={searchText} onChangeText={setSearchText} />
+              <FilterType
+                selected={selectedType}
+                onSelect={setSelectedType}
+                counts={counts}
+              />
+            </View>
+            {filteredSongs.length > 0 ? (
+              <SongList data={filteredSongs} />
+            ) : (
+              <View style={styles.empty}>
+                <View style={styles.emptyIcon}>
+                  <Text style={{ fontSize: rf(36) }}>🎵</Text>
+                </View>
+                <Text style={styles.emptyTitle}>Tsy hita</Text>
+                <Text style={styles.emptySub}>
+                  Tsy misy hira mifanaraka amin'ny fikarohana
+                </Text>
+              </View>
+            )}
+          </KeyboardAvoidingView>
+        ) : (
+          <View style={{ flex: 1 }}>
+            <View style={styles.controls}>
+              <SearchInput value={searchText} onChangeText={setSearchText} />
+              <FilterType
+                selected={selectedType}
+                onSelect={setSelectedType}
+                counts={counts}
+              />
+            </View>
+            {filteredSongs.length > 0 ? (
+              <SongList data={filteredSongs} />
+            ) : (
+              <View style={styles.empty}>
+                <View style={styles.emptyIcon}>
+                  <Text style={{ fontSize: rf(36) }}>🎵</Text>
+                </View>
+                <Text style={styles.emptyTitle}>Tsy hita</Text>
+                <Text style={styles.emptySub}>
+                  Tsy misy hira mifanaraka amin'ny fikarohana
+                </Text>
+              </View>
+            )}
+          </View>
         )}
-      </KeyboardAvoidingView>
       </Screen>
     </SafeAreaView>
   );
@@ -152,7 +197,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     letterSpacing: 1.5,
   },
-  appDesc: { fontSize: rf(11), color: "#b5c6d6", marginTop: rs(2), fontWeight: "500" },
+  appDesc: {
+    fontSize: rf(11),
+    color: "#b5c6d6",
+    marginTop: rs(2),
+    fontWeight: "500",
+  },
   headerStats: {
     backgroundColor: "rgba(250,204,21,0.12)",
     borderWidth: 1,
@@ -160,6 +210,10 @@ const styles = StyleSheet.create({
     borderRadius: rs(12),
     paddingHorizontal: rs(10),
     paddingVertical: rs(5),
+  },
+  infoBtn: {
+    width: rs(34), height: rs(34), borderRadius: rs(17),
+    justifyContent: "center", alignItems: "center",
   },
   statBadge: {
     fontSize: rf(12),

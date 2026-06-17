@@ -1,0 +1,208 @@
+import { rf, rs } from "@/utils/responsive";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Linking, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { BAR_H } from "@/components/TabBar";
+
+const FAQ = [
+  {
+    q: "Ahoana ny fomba fitadiavana hira?",
+    a: "Ampiasao ny karôha eo amin'ny pejy «Mitady» — soraty ny anaran'ny hira na ny teny ao anatin'ny hira, dia haseho avy hatrany ny valiny.",
+  },
+  {
+    q: "Inona ny atao hoe Playback?",
+    a: "Ny hira manana marika «Playback» dia manana feo azo atao play. Tsindrio ny carte de la hira, avy eo tsindrio ny bouton 🎧 mba hampiasa ny player.",
+  },
+  {
+    q: "Ahoana ny fomba fanampiana hira amin'ny Tiako?",
+    a: "Tsindrio ny icon cœur (♡) eo amin'ny an-kavanana ny hira rehetra mba hanampy azy amin'ny lisitra «Tiako». Tsindrio indray ny cœur feno mba hamafa.",
+  },
+  {
+    q: "Inona ny Akitsapaka?",
+    a: "Mifantina kisendrasendra ny hira amin'ny alalan'ny pejy «Akitsapaka». Safidio ny isan'ny hira tiako, avy eo tsindrio ny bouton Shuffle.",
+  },
+  {
+    q: "Ahoana ny fomba fampiasana ny player?",
+    a: "Eo amin'ny pejy hira (Playback), tsindrio 🎧 mba hampiakatra ny player. Azafady mety amin'ny pitch, hafainganam-peo ary reverb araka ny faniriako.",
+  },
+  {
+    q: "Azoko atao ve ny maneno hira amin'ny background?",
+    a: "Eny! Ny player dia miasa amin'ny background — mety hiasa na dia voakatona aza ny apk, na any amin'ny notification bar.",
+  },
+];
+
+export default function InfoScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      {/* Top bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={rs(22)} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.topTitle}>Fampahalalana</Text>
+        <View style={styles.backBtn} />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: BAR_H + insets.bottom + rs(24) }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Developer card ── */}
+        <View style={styles.devCard}>
+          <View style={styles.devIconRing}>
+            <View style={styles.devIconInner}>
+              <Ionicons name="code-slash" size={rs(28)} color="#facc15" />
+            </View>
+          </View>
+
+          <Text style={styles.devLabel}>Mpanamboatra ny apk</Text>
+          <Text style={styles.devName}>Zoky Fitiavana</Text>
+          <Text style={styles.devPseudo}>@frazakarivony</Text>
+
+          <TouchableOpacity
+            style={styles.siteBtn}
+            activeOpacity={0.75}
+            onPress={() => Linking.openURL("https://frazakarivony.vercel.app/")}
+          >
+            <Ionicons name="globe-outline" size={rs(14)} color="#020118" />
+            <Text style={styles.siteBtnText}>frazakarivony.vercel.app</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Song writer card ── */}
+        <View style={styles.writerCard}>
+          <View style={styles.writerLeft}>
+            <View style={styles.writerIcon}>
+              <Ionicons name="musical-notes" size={rs(18)} color="#facc15" />
+            </View>
+            <View>
+              <Text style={styles.writerLabel}>Nanoratra ireo hira</Text>
+              <Text style={styles.writerName}>Zoky Rajo</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── FAQ ── */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionLine} />
+          <Text style={styles.sectionTitle}>FAQ — Fomba fampiasa</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        {FAQ.map((item, i) => (
+          <View key={i} style={styles.faqItem}>
+            <View style={styles.faqQ}>
+              <View style={styles.faqNum}>
+                <Text style={styles.faqNumText}>{i + 1}</Text>
+              </View>
+              <Text style={styles.faqQText}>{item.q}</Text>
+            </View>
+            <Text style={styles.faqA}>{item.a}</Text>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#020118" },
+
+  topBar: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: rs(14), paddingVertical: rs(10),
+    gap: rs(10),
+  },
+  backBtn: {
+    width: rs(38), height: rs(38), borderRadius: rs(19),
+    backgroundColor: "#06033a",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center", alignItems: "center",
+  },
+  topTitle: {
+    flex: 1, textAlign: "center",
+    fontSize: rf(16), fontWeight: "800", color: "#fff",
+  },
+
+  scroll: { paddingHorizontal: rs(18), paddingTop: rs(8), gap: rs(14) },
+
+  /* Developer */
+  devCard: {
+    backgroundColor: "#06033a",
+    borderRadius: rs(20),
+    borderWidth: 1, borderColor: "rgba(250,204,21,0.2)",
+    alignItems: "center",
+    paddingVertical: rs(28), paddingHorizontal: rs(20),
+    gap: rs(6),
+  },
+  devIconRing: {
+    width: rs(80), height: rs(80), borderRadius: rs(40),
+    borderWidth: 1, borderColor: "rgba(250,204,21,0.2)",
+    justifyContent: "center", alignItems: "center",
+    marginBottom: rs(6),
+  },
+  devIconInner: {
+    width: rs(62), height: rs(62), borderRadius: rs(31),
+    backgroundColor: "rgba(250,204,21,0.08)",
+    justifyContent: "center", alignItems: "center",
+  },
+  devLabel: { fontSize: rf(11), color: "#5a6e90", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 },
+  devName: { fontSize: rf(20), fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
+  devPseudo: { fontSize: rf(13), color: "#facc15", fontWeight: "600" },
+  siteBtn: {
+    flexDirection: "row", alignItems: "center", gap: rs(6),
+    marginTop: rs(8),
+    backgroundColor: "#facc15",
+    paddingHorizontal: rs(16), paddingVertical: rs(9),
+    borderRadius: rs(20),
+  },
+  siteBtnText: { fontSize: rf(12), fontWeight: "700", color: "#020118" },
+
+  /* Writer */
+  writerCard: {
+    backgroundColor: "#06033a",
+    borderRadius: rs(16),
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.07)",
+    padding: rs(16),
+  },
+  writerLeft: { flexDirection: "row", alignItems: "center", gap: rs(14) },
+  writerIcon: {
+    width: rs(44), height: rs(44), borderRadius: rs(14),
+    backgroundColor: "rgba(250,204,21,0.08)",
+    borderWidth: 1, borderColor: "rgba(250,204,21,0.18)",
+    justifyContent: "center", alignItems: "center",
+  },
+  writerLabel: { fontSize: rf(11), color: "#5a6e90", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 },
+  writerName: { fontSize: rf(16), fontWeight: "800", color: "#fff", marginTop: rs(2) },
+
+  /* FAQ */
+  sectionHeader: {
+    flexDirection: "row", alignItems: "center",
+    gap: rs(10), marginTop: rs(6),
+  },
+  sectionLine: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.07)" },
+  sectionTitle: { fontSize: rf(11), color: "#5a6e90", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+
+  faqItem: {
+    backgroundColor: "#06033a",
+    borderRadius: rs(16),
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.07)",
+    padding: rs(16), gap: rs(10),
+  },
+  faqQ: { flexDirection: "row", alignItems: "flex-start", gap: rs(10) },
+  faqNum: {
+    width: rs(22), height: rs(22), borderRadius: rs(11),
+    backgroundColor: "#facc15",
+    justifyContent: "center", alignItems: "center",
+    flexShrink: 0, marginTop: rs(1),
+  },
+  faqNumText: { fontSize: rf(10), fontWeight: "800", color: "#020118" },
+  faqQText: { flex: 1, fontSize: rf(13), fontWeight: "700", color: "#fff", lineHeight: rf(20) },
+  faqA: { fontSize: rf(12), color: "#b5c6d6", lineHeight: rf(20), paddingLeft: rs(32) },
+});
