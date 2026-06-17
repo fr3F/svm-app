@@ -43,7 +43,7 @@ export default function AkitsapakaScreen() {
           : { id: String(i), title: String(s) }
         );
       showResults(picked);
-    }, 700);
+    }, 350);
   }, [countNumber]);
 
   useEffect(() => { pickRandom(); }, [pickRandom]);
