@@ -19,9 +19,10 @@ type TabConfig = {
 };
 
 const TABS: TabConfig[] = [
-  { icon: "search-outline",  iconActive: "search",  label: "Mitady",     route: "/(tabs)/about" },
-  { icon: "heart-outline",   iconActive: "heart",   label: "Tiako",      route: "/(tabs)/favorites" },
-  { icon: "shuffle-outline", iconActive: "shuffle", label: "Akitsapaka", route: "/(tabs)/akitsapaka" },
+  { icon: "search-outline",         iconActive: "search",           label: "Mitady",     route: "/(tabs)/about" },
+  { icon: "heart-outline",          iconActive: "heart",            label: "Tiako",      route: "/(tabs)/favorites" },
+  { icon: "shuffle-outline",        iconActive: "shuffle",          label: "Akitsapaka", route: "/(tabs)/akitsapaka" },
+  { icon: "information-circle-outline", iconActive: "information-circle", label: "Momba", route: "/(tabs)/info" },
 ];
 
 export const BAR_H = Platform.OS === "ios" ? rs(72) : rs(66);
@@ -31,6 +32,7 @@ const SPRING = { damping: 18, stiffness: 160, mass: 0.7 };
 function getActiveIndex(pathname: string): number {
   if (pathname.includes("favorites")) return 1;
   if (pathname.includes("akitsapaka")) return 2;
+  if (pathname.includes("info")) return 3;
   return 0;
 }
 
@@ -71,7 +73,7 @@ export default function TabBar() {
       <View
         style={[styles.bar, { height: BAR_H }]}
         onLayout={e => {
-          const w = e.nativeEvent.layout.width / 3;
+          const w = e.nativeEvent.layout.width / 4;
           if (w !== tabWidth) {
             setTabWidth(w);
             activeX.value = activeIndex * w;

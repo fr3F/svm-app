@@ -10,6 +10,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="about" />
       <Tabs.Screen name="favorites" />
       <Tabs.Screen name="akitsapaka" />
+      <Tabs.Screen name="info" />
     </Tabs>
   );
 }
