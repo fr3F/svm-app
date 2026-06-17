@@ -1,4 +1,5 @@
-import { isTablet, rs } from "@/utils/responsive";
+import { useFavorites } from "@/stores/useFavorites";
+import { isTablet, rf, rs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -38,6 +39,8 @@ export default function TabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const activeIndex = getActiveIndex(pathname);
+  const { list: favorites } = useFavorites();
+  const favCount = favorites.length;
 
   const [tabWidth, setTabWidth] = useState(0);
   const activeX = useSharedValue(0);
@@ -90,11 +93,20 @@ export default function TabBar() {
               activeOpacity={0.85}
               onPress={() => router.replace(tab.route as any)}
             >
-              <Ionicons
-                name={focused ? tab.iconActive : tab.icon}
-                size={rs(22)}
-                color={focused ? "#0a0630" : "#4a6080"}
-              />
+              <View style={styles.iconWrap}>
+                <Ionicons
+                  name={focused ? tab.iconActive : tab.icon}
+                  size={rs(22)}
+                  color={focused ? "#0a0630" : "#4a6080"}
+                />
+                {index === 1 && favCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText} allowFontScaling={false}>
+                      {favCount > 99 ? "99+" : favCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text
                 style={[styles.label, focused && styles.labelActive]}
                 allowFontScaling={false}
@@ -152,4 +164,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   labelActive: { color: "#0a0630" },
+
+  iconWrap: { position: "relative" },
+  badge: {
+    position: "absolute",
+    top: -rs(5),
+    right: -rs(7),
+    minWidth: rs(16),
+    height: rs(16),
+    borderRadius: rs(8),
+    backgroundColor: "#facc15",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: rs(3),
+  },
+  badgeText: {
+    fontSize: rf(9),
+    fontWeight: "800",
+    color: "#020118",
+    lineHeight: rs(16),
+  },
 });
