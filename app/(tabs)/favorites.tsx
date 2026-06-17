@@ -1,12 +1,13 @@
 import { songs } from "@/assets/data/songs";
+import ConfirmModal from "@/components/ConfirmModal";
 import Screen from "@/components/Screen";
 import { refreshFavorites, useFavorites } from "@/stores/useFavorites";
 import { isTablet, rf, rs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo } from "react";
-import { FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BAR_H } from "@/components/TabBar";
 
@@ -16,6 +17,7 @@ export default function FavoritesTab() {
   const insets = useSafeAreaInsets();
   const { list, toggle } = useFavorites();
   const router = useRouter();
+  const [confirmSong, setConfirmSong] = useState<{ id: string; title: string } | null>(null);
 
   useFocusEffect(useCallback(() => { refreshFavorites(); }, []));
 
@@ -71,48 +73,49 @@ export default function FavoritesTab() {
                 style={[styles.card, isTablet && styles.cardTablet]}
                 onPress={() => router.push(`/song/${item.id}`)}
               >
-                  {item.type === "playback" && <View style={styles.cardAccent} />}
+                {item.type === "playback" && <View style={styles.cardAccent} />}
 
-                  <View style={styles.numBadge}>
-                    <Text style={styles.numText}>{index + 1}</Text>
-                  </View>
+                <View style={styles.numBadge}>
+                  <Text style={styles.numText}>{index + 1}</Text>
+                </View>
 
-                  <View style={[styles.iconBox, item.type === "playback" && styles.iconBoxPlayback]}>
-                    <Ionicons
-                      name={item.type === "playback" ? "headset" : "musical-note"}
-                      size={rs(19)}
-                      color={item.type === "playback" ? "#facc15" : "#b5c6d6"}
-                    />
-                  </View>
+                <View style={[styles.iconBox, item.type === "playback" && styles.iconBoxPlayback]}>
+                  <Ionicons
+                    name={item.type === "playback" ? "headset" : "musical-note"}
+                    size={rs(19)}
+                    color={item.type === "playback" ? "#facc15" : "#b5c6d6"}
+                  />
+                </View>
 
-                  <View style={styles.info}>
-                    <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-                    {item.type === "playback" && (
-                      <Text style={styles.cardType}>Playback</Text>
-                    )}
-                  </View>
+                <View style={styles.info}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+                  {item.type === "playback" && (
+                    <Text style={styles.cardType}>Playback</Text>
+                  )}
+                </View>
 
-                  <TouchableOpacity
-                    onPress={() =>
-                      Alert.alert(
-                        "Esorina?",
-                        `Esorina amin'ny Tiako ny "${item.title}"?`,
-                        [
-                          { text: "Tsia", style: "cancel" },
-                          { text: "Esorina", style: "destructive", onPress: () => toggle(item.id) },
-                        ]
-                      )
-                    }
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    activeOpacity={0.6}
-                  >
-                    <Ionicons name="heart" size={rs(18)} color="#facc15" />
-                  </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setConfirmSong({ id: item.id, title: item.title })}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.6}
+                >
+                  <Ionicons name="heart" size={rs(18)} color="#facc15" />
                 </TouchableOpacity>
+              </TouchableOpacity>
             )}
           />
         )}
       </Screen>
+
+      <ConfirmModal
+        visible={confirmSong !== null}
+        songTitle={confirmSong?.title ?? ""}
+        onCancel={() => setConfirmSong(null)}
+        onConfirm={() => {
+          if (confirmSong) toggle(confirmSong.id);
+          setConfirmSong(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
