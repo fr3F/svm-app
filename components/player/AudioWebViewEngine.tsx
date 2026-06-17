@@ -1,6 +1,6 @@
 import { nativeEngine } from "@/stores/nativeEngine";
 import { usePlayer } from "@/stores/usePlayer";
-import { Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { AUDIO_HTML } from "./audioHtml";
 
@@ -26,26 +26,29 @@ export default function AudioWebViewEngine() {
   };
 
   return (
-    <WebView
-      ref={ref => { nativeEngine.webRef = ref; }}
-      source={{ html: AUDIO_HTML, baseUrl: "file:///" }}
-      style={styles.hidden}
-      onLoadEnd={handleReady}
-      onMessage={handleMsg}
-      originWhitelist={["*"]}
-      allowFileAccess
-      allowUniversalAccessFromFileURLs
-      allowFileAccessFromFileURLs
-      mixedContentMode="always"
-      mediaPlaybackRequiresUserAction={false}
-      javaScriptEnabled
-      domStorageEnabled
-      allowsInlineMediaPlayback
-      {...(Platform.OS === "android" ? { androidLayerType: "hardware" } : {})}
-    />
+    <View pointerEvents="none" style={styles.wrapper}>
+      <WebView
+        ref={ref => { nativeEngine.webRef = ref; }}
+        source={{ html: AUDIO_HTML, baseUrl: "file:///" }}
+        style={styles.hidden}
+        onLoadEnd={handleReady}
+        onMessage={handleMsg}
+        originWhitelist={["*"]}
+        allowFileAccess
+        allowUniversalAccessFromFileURLs
+        allowFileAccessFromFileURLs
+        mixedContentMode="always"
+        mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled
+        domStorageEnabled
+        allowsInlineMediaPlayback
+        {...(Platform.OS === "android" ? { androidLayerType: "hardware" } : {})}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hidden: { width: 0, height: 0, opacity: 0, position: "absolute" },
+  wrapper: { position: "absolute", width: 0, height: 0, overflow: "hidden" },
+  hidden: { width: 0, height: 0 },
 });

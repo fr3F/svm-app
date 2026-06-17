@@ -52,6 +52,8 @@ export default function TabBar() {
     transform: [{ translateX: activeX.value + PILL_INSET }],
   }));
 
+  if (pathname === "/") return null;
+
   return (
     <View
       style={[

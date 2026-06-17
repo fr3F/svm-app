@@ -7,6 +7,7 @@ import { View } from "react-native";
 import Toast from "react-native-toast-message";
 import AudioWebViewEngine from "@/components/player/AudioWebViewEngine";
 import MiniPlayer from "@/components/player/MiniPlayer";
+import TabBar from "@/components/TabBar";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,12 +27,14 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{ flex: 1, position: "relative" }}>
+    <View style={{ flex: 1, backgroundColor: "#020118" }}>
       <Stack
         screenOptions={{
           headerShown: false,
+          contentStyle: { flex: 1, backgroundColor: "#020118" },
         }}
       />
+      <TabBar />
       <AudioWebViewEngine />
       <MiniPlayer />
       <Toast />
