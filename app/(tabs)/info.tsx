@@ -53,6 +53,18 @@ export default function InfoTab() {
         contentContainerStyle={[styles.scroll, { paddingBottom: BAR_H + insets.bottom + rs(24) }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Founder card ── */}
+        <View style={styles.founderCard}>
+          <View style={styles.founderIconRing}>
+            <View style={styles.founderIconInner}>
+              <Ionicons name="star" size={rs(32)} color="#facc15" />
+            </View>
+          </View>
+          <Text style={styles.founderLabel}>Namorona ny SVM</Text>
+          <Text style={styles.founderName}>Zoky Casmir</Text>
+          <Text style={styles.founderSub}>SVM Malaza Fahazavana</Text>
+        </View>
+
         {/* ── Developer card ── */}
         <View style={styles.devCard}>
           <View style={styles.devIconRing}>
@@ -73,18 +85,6 @@ export default function InfoTab() {
             <Ionicons name="globe-outline" size={rs(14)} color="#020118" />
             <Text style={styles.siteBtnText}>frazakarivony.vercel.app</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* ── Founder card ── */}
-        <View style={styles.founderCard}>
-          <View style={styles.founderIconRing}>
-            <View style={styles.founderIconInner}>
-              <Ionicons name="star" size={rs(32)} color="#facc15" />
-            </View>
-          </View>
-          <Text style={styles.founderLabel}>Namorona ny SVM</Text>
-          <Text style={styles.founderName}>Zoky Casmir</Text>
-          <Text style={styles.founderSub}>SVM Malaza Fahazavana</Text>
         </View>
 
         {/* ── Song writer card ── */}
