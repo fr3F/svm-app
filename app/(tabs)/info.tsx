@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   devPseudo: { fontSize: rf(12), color: "#facc15", fontWeight: "600", marginTop: rs(1) },
   siteBtn: {
     flexDirection: "row", alignItems: "center", gap: rs(5),
-    alignSelf: "flex-start",
+    alignSelf: "flex-end",
     backgroundColor: "#facc15",
     paddingHorizontal: rs(12), paddingVertical: rs(6),
     borderRadius: rs(16),
