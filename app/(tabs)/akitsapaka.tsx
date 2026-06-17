@@ -26,7 +26,7 @@ export default function AkitsapakaScreen() {
     fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 350,
+      duration: 180,
       useNativeDriver: true,
     }).start();
   };
