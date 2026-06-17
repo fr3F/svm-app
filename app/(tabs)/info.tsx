@@ -76,16 +76,15 @@ export default function InfoTab() {
         </View>
 
         {/* ── Founder card ── */}
-        <View style={styles.writerCard}>
-          <View style={styles.writerLeft}>
-            <View style={[styles.writerIcon, styles.writerIconFounder]}>
-              <Ionicons name="star" size={rs(18)} color="#facc15" />
-            </View>
-            <View>
-              <Text style={styles.writerLabel}>Namorona ny SVM</Text>
-              <Text style={styles.writerName}>Casmir</Text>
+        <View style={styles.founderCard}>
+          <View style={styles.founderIconRing}>
+            <View style={styles.founderIconInner}>
+              <Ionicons name="star" size={rs(32)} color="#facc15" />
             </View>
           </View>
+          <Text style={styles.founderLabel}>Namorona ny SVM</Text>
+          <Text style={styles.founderName}>Zoky Casmir</Text>
+          <Text style={styles.founderSub}>SVM Malaza Fahazavana</Text>
         </View>
 
         {/* ── Song writer card ── */}
@@ -187,10 +186,33 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(250,204,21,0.18)",
     justifyContent: "center", alignItems: "center",
   },
-  writerIconFounder: {
-    backgroundColor: "rgba(250,204,21,0.15)",
-    borderColor: "rgba(250,204,21,0.35)",
+  founderCard: {
+    backgroundColor: "#06033a",
+    borderRadius: rs(24),
+    borderWidth: 1.5, borderColor: "rgba(250,204,21,0.35)",
+    alignItems: "center",
+    paddingVertical: rs(36), paddingHorizontal: rs(20),
+    gap: rs(6),
+    shadowColor: "#facc15",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12, shadowRadius: 20,
+    elevation: 10,
   },
+  founderIconRing: {
+    width: rs(100), height: rs(100), borderRadius: rs(50),
+    borderWidth: 1.5, borderColor: "rgba(250,204,21,0.3)",
+    justifyContent: "center", alignItems: "center",
+    marginBottom: rs(8),
+  },
+  founderIconInner: {
+    width: rs(78), height: rs(78), borderRadius: rs(39),
+    backgroundColor: "rgba(250,204,21,0.12)",
+    justifyContent: "center", alignItems: "center",
+  },
+  founderLabel: { fontSize: rf(11), color: "#5a6e90", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 },
+  founderName: { fontSize: rf(26), fontWeight: "800", color: "#fff", letterSpacing: 0.4 },
+  founderSub: { fontSize: rf(13), color: "#facc15", fontWeight: "600", marginTop: rs(2) },
+
   writerLabel: { fontSize: rf(11), color: "#5a6e90", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 },
   writerName: { fontSize: rf(16), fontWeight: "800", color: "#fff", marginTop: rs(2) },
 
