@@ -6,13 +6,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
-import { FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { BAR_H } from "@/components/TabBar";
 
 const NUM_COLS = isTablet ? 2 : 1;
 
 export default function FavoritesTab() {
-  const { list } = useFavorites();
+  const insets = useSafeAreaInsets();
+  const { list, toggle } = useFavorites();
   const router = useRouter();
 
   useFocusEffect(useCallback(() => { refreshFavorites(); }, []));
@@ -25,8 +27,8 @@ export default function FavoritesTab() {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#020118" />
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <Screen>
         {/* Header */}
         <View style={styles.header}>
@@ -55,12 +57,13 @@ export default function FavoritesTab() {
           </View>
         ) : (
           <FlatList
+            style={{ flex: 1 }}
             data={favs}
             keyExtractor={item => item.id}
             numColumns={NUM_COLS}
             columnWrapperStyle={isTablet ? styles.columnWrapper : undefined}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: BAR_H + Math.min(insets.bottom, rs(48)) + rs(10) }]}
             ItemSeparatorComponent={() => <View style={{ height: rs(10) }} />}
             renderItem={({ item, index }) => (
               <TouchableOpacity
@@ -89,7 +92,22 @@ export default function FavoritesTab() {
                     )}
                   </View>
 
-                  <Ionicons name="heart" size={rs(18)} color="#facc15" />
+                  <TouchableOpacity
+                    onPress={() =>
+                      Alert.alert(
+                        "Esorina?",
+                        `Esorina amin'ny Tiako ny "${item.title}"?`,
+                        [
+                          { text: "Tsia", style: "cancel" },
+                          { text: "Esorina", style: "destructive", onPress: () => toggle(item.id) },
+                        ]
+                      )
+                    }
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.6}
+                  >
+                    <Ionicons name="heart" size={rs(18)} color="#facc15" />
+                  </TouchableOpacity>
                 </TouchableOpacity>
             )}
           />
@@ -131,7 +149,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: rf(18), fontWeight: "700", color: "#fff", textAlign: "center" },
   emptySub: { fontSize: rf(13), color: "#5a6e90", textAlign: "center", lineHeight: rf(21) },
 
-  list: { paddingHorizontal: rs(14), paddingTop: rs(14), paddingBottom: rs(110) },
+  list: { paddingHorizontal: rs(14), paddingTop: rs(14) },
   columnWrapper: { gap: rs(10) },
 
   card: {
