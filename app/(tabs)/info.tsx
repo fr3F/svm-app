@@ -1,5 +1,6 @@
 import { rf, rs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { Linking, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BAR_H } from "@/components/TabBar";
@@ -30,6 +31,30 @@ const FAQ = [
     a: "Eny! Ny player dia miasa amin'ny background — mety hiasa na dia voakatona aza ny apk, na any amin'ny notification bar.",
   },
 ];
+
+function FaqItem({ item, index }: { item: { q: string; a: string }; index: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={styles.faqItem}>
+      <TouchableOpacity
+        style={styles.faqQ}
+        activeOpacity={0.75}
+        onPress={() => setOpen(o => !o)}
+      >
+        <View style={styles.faqNum}>
+          <Text style={styles.faqNumText}>{index + 1}</Text>
+        </View>
+        <Text style={styles.faqQText}>{item.q}</Text>
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={rs(16)}
+          color="#5a6e90"
+        />
+      </TouchableOpacity>
+      {open && <Text style={styles.faqA}>{item.a}</Text>}
+    </View>
+  );
+}
 
 export default function InfoTab() {
   const insets = useSafeAreaInsets();
@@ -108,15 +133,7 @@ export default function InfoTab() {
         </View>
 
         {FAQ.map((item, i) => (
-          <View key={i} style={styles.faqItem}>
-            <View style={styles.faqQ}>
-              <View style={styles.faqNum}>
-                <Text style={styles.faqNumText}>{i + 1}</Text>
-              </View>
-              <Text style={styles.faqQText}>{item.q}</Text>
-            </View>
-            <Text style={styles.faqA}>{item.a}</Text>
-          </View>
+          <FaqItem key={i} item={item} index={i} />
         ))}
       </ScrollView>
     </SafeAreaView>
@@ -222,14 +239,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#06033a",
     borderRadius: rs(16),
     borderWidth: 1, borderColor: "rgba(255,255,255,0.07)",
-    padding: rs(16), gap: rs(10),
+    paddingHorizontal: rs(16), paddingVertical: rs(14),
+    gap: rs(10),
   },
-  faqQ: { flexDirection: "row", alignItems: "flex-start", gap: rs(10) },
+  faqQ: { flexDirection: "row", alignItems: "center", gap: rs(10) },
   faqNum: {
     width: rs(22), height: rs(22), borderRadius: rs(11),
     backgroundColor: "#facc15",
     justifyContent: "center", alignItems: "center",
-    flexShrink: 0, marginTop: rs(1),
+    flexShrink: 0,
   },
   faqNumText: { fontSize: rf(10), fontWeight: "800", color: "#020118" },
   faqQText: { flex: 1, fontSize: rf(13), fontWeight: "700", color: "#fff", lineHeight: rf(20) },
