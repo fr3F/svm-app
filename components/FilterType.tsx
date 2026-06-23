@@ -1,6 +1,8 @@
+import { useTheme } from "@/stores/useTheme";
+import { ThemeColors } from "@/utils/colors";
 import { rf, rs } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface Props {
@@ -15,7 +17,48 @@ const filters = [
   { label: "Lyrics", value: "lyrics", icon: "book-outline" },
 ] as const;
 
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    track: {
+      flexDirection: "row",
+      backgroundColor: c.accentDim,
+      borderRadius: rs(16),
+      padding: rs(4),
+      marginBottom: rs(12),
+      borderWidth: 1,
+      borderColor: c.border,
+      gap: rs(4),
+    },
+    pill: {
+      flex: 1, flexDirection: "row", alignItems: "center",
+      justifyContent: "center", gap: rs(4),
+      paddingVertical: rs(7), paddingHorizontal: rs(4),
+      borderRadius: rs(11),
+    },
+    pillActive: {
+      backgroundColor: c.accent,
+      shadowColor: c.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    },
+    label: { fontSize: rf(11), color: c.textSub, fontWeight: "600" },
+    labelActive: { color: c.accentText },
+    badge: {
+      backgroundColor: c.border,
+      borderRadius: rs(7),
+      minWidth: rs(20), paddingHorizontal: rs(5), paddingVertical: rs(1),
+      alignItems: "center",
+    },
+    badgeActive: { backgroundColor: "rgba(0,0,0,0.15)" },
+    badgeText: { fontSize: rf(10), color: c.textSub, fontWeight: "700" },
+    badgeTextActive: { color: c.accentText },
+  });
+}
+
 export default function FilterType({ selected, onSelect, counts }: Props) {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   return (
     <View style={styles.track}>
       {filters.map(({ label, value, icon }) => {
@@ -28,7 +71,7 @@ export default function FilterType({ selected, onSelect, counts }: Props) {
             onPress={() => onSelect(value)}
             style={[styles.pill, active && styles.pillActive]}
           >
-            <Ionicons name={icon as any} size={rs(12)} color={active ? "#020118" : "#b5c6d6"} />
+            <Ionicons name={icon as any} size={rs(12)} color={active ? c.accentText : c.textSub} />
             <Text style={[styles.label, active && styles.labelActive]} allowFontScaling={false}>{label}</Text>
             <View style={[styles.badge, active && styles.badgeActive]}>
               <Text style={[styles.badgeText, active && styles.badgeTextActive]} allowFontScaling={false}>{count}</Text>
@@ -39,47 +82,3 @@ export default function FilterType({ selected, onSelect, counts }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  track: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: rs(16),
-    padding: rs(4),
-    marginBottom: rs(12),
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    gap: rs(4),
-  },
-  pill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: rs(4),
-    paddingVertical: rs(7),
-    paddingHorizontal: rs(4),
-    borderRadius: rs(11),
-  },
-  pillActive: {
-    backgroundColor: "#facc15",
-    shadowColor: "#facc15",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  label: { fontSize: rf(11), color: "#b5c6d6", fontWeight: "600" },
-  labelActive: { color: "#020118" },
-  badge: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: rs(7),
-    minWidth: rs(20),
-    paddingHorizontal: rs(5),
-    paddingVertical: rs(1),
-    alignItems: "center",
-  },
-  badgeActive: { backgroundColor: "rgba(2,1,24,0.18)" },
-  badgeText: { fontSize: rf(10), color: "#b5c6d6", fontWeight: "700" },
-  badgeTextActive: { color: "#020118" },
-});

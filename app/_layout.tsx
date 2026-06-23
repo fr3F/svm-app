@@ -3,35 +3,39 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import Toast from "react-native-toast-message";
 import AudioWebViewEngine from "@/components/player/AudioWebViewEngine";
 import MiniPlayer from "@/components/player/MiniPlayer";
 import TabBar from "@/components/TabBar";
+import { ThemeProvider, useTheme } from "@/stores/useTheme";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    ...Ionicons.font,
-  });
+function AppShell() {
+  const [loaded, error] = useFonts({ ...Ionicons.font });
+  const { colors: c, ready: themeReady } = useTheme();
 
   useEffect(() => {
-    if (loaded || error) {
+    if ((loaded || error) && themeReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, error]);
+  }, [loaded, error, themeReady]);
 
   if (!loaded && !error) {
-    return null;
+    return (
+      <View style={{ flex: 1, backgroundColor: c.bg, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={c.accent} />
+      </View>
+    );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#020118" }}>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { flex: 1, backgroundColor: "#020118" },
+          contentStyle: { flex: 1, backgroundColor: c.bg },
         }}
       />
       <TabBar />
@@ -39,5 +43,13 @@ export default function RootLayout() {
       <MiniPlayer />
       <Toast />
     </View>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
   );
 }

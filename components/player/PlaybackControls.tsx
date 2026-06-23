@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { usePlayer } from "@/stores/usePlayer";
 import { nativeEngine } from "@/stores/nativeEngine";
 import { PitchShifter } from "soundtouchjs";
+import { rf, rs } from "@/utils/responsive";
 import {
   Alert, PanResponder, Platform, StyleSheet, Switch, Text,
   TouchableOpacity, View,
@@ -70,10 +71,10 @@ function Slider({
   );
 }
 const ss = StyleSheet.create({
-  track: { height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.08)", overflow: "visible", justifyContent: "center" },
+  track: { height: rs(4), borderRadius: rs(2), backgroundColor: "rgba(255,255,255,0.08)", overflow: "visible", justifyContent: "center" },
   trackDim: { opacity: 0.4 },
-  fill: { height: 4, borderRadius: 2, alignItems: "flex-end", justifyContent: "center" },
-  thumb: { width: 12, height: 12, borderRadius: 6, marginRight: -6, borderWidth: 1.5, borderColor: "#020118" },
+  fill: { height: rs(4), borderRadius: rs(2), alignItems: "flex-end", justifyContent: "center" },
+  thumb: { width: rs(12), height: rs(12), borderRadius: rs(6), marginRight: rs(-6), borderWidth: 1.5, borderColor: "#020118" },
 });
 
 const IS_WEB = Platform.OS === "web";
@@ -133,11 +134,14 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
   const [is8D, set8DState] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const trackWidth = useRef(0);
+  const hitRef = useRef<View>(null);
+  const hitLeft = useRef(0);
+  const hitWidth = useRef(0);
   const isSeeking = useRef(false);
-  const initTouchX = useRef(0);
+  const pendingSeekUntil = useRef(0);
   const durationRef = useRef(0);
   const positionRef = useRef(0);
+  const seekByPageX = useRef<(pageX: number) => void>(() => {});
 
   // ── send (native) ─────────────────────────────────────────────────────────
   const send = useCallback((msg: object) => {
@@ -154,7 +158,11 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
       if (autoStart) send({ type: "play" });
     } else if (msg.type === "status") {
       durationRef.current = msg.duration; setDuration(msg.duration);
-      if (!isSeeking.current) { positionRef.current = msg.position; setPosition(msg.position); }
+      usePlayer.getState().setDuration(msg.duration);
+      if (!isSeeking.current && Date.now() > pendingSeekUntil.current) {
+        positionRef.current = msg.position; setPosition(msg.position);
+        usePlayer.getState().setPosition(msg.position);
+      }
       setIsPlaying(msg.isPlaying);
     } else if (msg.type === "ended") {
       setIsPlaying(false); setPosition(0); positionRef.current = 0;
@@ -264,10 +272,16 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
       const wg = wa as typeof waGlobal;
       if (!wg.shifter) return;
       const playing = wg.isPlaying;
-      if (playing) {
+      if (playing && Date.now() > pendingSeekUntil.current) {
         const pos = wg.shifter.timePlayed;
-        if (!isSeeking.current) { positionRef.current = pos; setPosition(pos); }
+        if (!isSeeking.current) {
+          positionRef.current = pos;
+          setPosition(pos);
+          usePlayer.getState().setPosition(pos);
+        }
       }
+      const dur = durationRef.current;
+      if (dur > 0) usePlayer.getState().setDuration(dur);
       setIsPlaying(playing);
       usePlayer.getState().setIsPlaying(playing);
     }, 200);
@@ -327,7 +341,11 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
         durationRef.current = audioBuf.duration; setDuration(audioBuf.duration);
 
         wg.shifter = new PitchShifter(wg.ctx as AudioContext, audioBuf, 4096, () => {
-          // onEnd
+          // SP a atteint la fin — ignorer si l'audio est en pause
+          if (!wg.isPlaying) {
+            if (wg.shifter) wg.shifter.percentagePlayed = wg.pausedAt;
+            return;
+          }
           wg.isPlaying = false; wg.pausedAt = 0;
           wg.gainNode!.gain.value = 0;
           setIsPlaying(false); setPosition(0); positionRef.current = 0;
@@ -415,20 +433,23 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
     if (IS_WEB) {
       const wg = waGlobal;
       if (!wg.shifter || !wg.graphReady || !wg.gainNode) return;
-      if (wg.ctx!.state === "suspended") wg.ctx!.resume();
       if (wg.isPlaying) {
         wg.pausedAt = wg.shifter.percentagePlayed;
         wg.gainNode.gain.value = 0;
         wg.isPlaying = false;
+        wg.ctx!.suspend();
         setIsPlaying(false);
         usePlayer.getState().setIsPlaying(false);
       } else {
-        wg.shifter.percentagePlayed = wg.pausedAt;
-        wg.gainNode.gain.value = 1;
-        wg.isPlaying = true;
-        setIsPlaying(true);
-        usePlayer.getState().setIsPlaying(true);
-        if (prms.current.is8D) waApply8D();
+        wg.ctx!.resume().then(() => {
+          if (!wg.shifter || !wg.gainNode) return;
+          wg.shifter.percentagePlayed = wg.pausedAt;
+          wg.gainNode.gain.value = 1;
+          wg.isPlaying = true;
+          setIsPlaying(true);
+          usePlayer.getState().setIsPlaying(true);
+          if (prms.current.is8D) waApply8D();
+        });
       }
     } else {
       send({ type: isPlaying ? "pause" : "play" });
@@ -437,50 +458,79 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
 
   const waSeekToPos = (pos: number) => {
     const wg = waGlobal;
-    if (!wg.shifter) return;
+    if (!wg.shifter || !wg.gainNode || !wg.graphReady) return;
     const dur = durationRef.current;
     const perc = dur > 0 ? (pos / dur) * 100 : 0;
-    wg.shifter.percentagePlayed = perc;
-    if (!wg.isPlaying) wg.pausedAt = perc;
+    wg.pausedAt = perc;
     positionRef.current = pos; setPosition(pos);
+    const applySeek = () => {
+      if (!wg.shifter || !wg.gainNode) return;
+      wg.shifter.percentagePlayed = perc;
+      wg.gainNode.gain.value = 1;
+      wg.isPlaying = true;
+      setIsPlaying(true);
+      usePlayer.getState().setIsPlaying(true);
+      if (prms.current.is8D) waApply8D();
+    };
+    if (wg.ctx?.state === "suspended") {
+      wg.ctx.resume().then(applySeek);
+    } else {
+      applySeek();
+    }
   };
 
   const back = () => {
+    pendingSeekUntil.current = Date.now() + 600;
     if (IS_WEB) {
       waSeekToPos(Math.max(0, positionRef.current - 10));
     } else {
       const p = Math.max(0, positionRef.current - 10);
-      send({ type: "seek", position: p }); setPosition(p);
+      positionRef.current = p; setPosition(p);
+      send({ type: "seek", position: p });
     }
   };
 
   const fwd = () => {
+    pendingSeekUntil.current = Date.now() + 600;
     if (IS_WEB) {
       waSeekToPos(Math.min(durationRef.current, positionRef.current + 10));
     } else {
       const p = Math.min(durationRef.current, positionRef.current + 10);
-      send({ type: "seek", position: p }); setPosition(p);
+      positionRef.current = p; setPosition(p);
+      send({ type: "seek", position: p });
     }
   };
 
-  const seekTo = (x: number) => {
-    const w = trackWidth.current; const dur = durationRef.current;
+  const applySeekPageX = (pageX: number) => {
+    const w = hitWidth.current; const dur = durationRef.current;
     if (!dur || !w) return;
-    const ratio = Math.max(0, Math.min(1, x / w));
+    const ratio = Math.max(0, Math.min(1, (pageX - hitLeft.current) / w));
     const pos = ratio * dur;
     setSeekPct(ratio * 100);
+    pendingSeekUntil.current = Date.now() + 600;
     if (IS_WEB) {
       waSeekToPos(pos);
     } else {
+      positionRef.current = pos;
+      setPosition(pos);
       send({ type: "seek", position: pos });
     }
   };
+  seekByPageX.current = applySeekPageX;
 
   const panResponder = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: e => { isSeeking.current = true; initTouchX.current = e.nativeEvent.locationX; seekTo(e.nativeEvent.locationX); },
-    onPanResponderMove: (e, gs) => { seekTo(initTouchX.current + gs.dx); },
+    onPanResponderGrant: e => {
+      isSeeking.current = true;
+      const px = e.nativeEvent.pageX;
+      // Mesure fraîche à chaque clique — garantit la position correcte
+      hitRef.current?.measureInWindow((x, _y, w) => {
+        if (w > 0) { hitLeft.current = x; hitWidth.current = w; }
+        seekByPageX.current(px);
+      });
+    },
+    onPanResponderMove: e => { seekByPageX.current(e.nativeEvent.pageX); },
     onPanResponderRelease: () => { isSeeking.current = false; setSeekPct(null); },
     onPanResponderTerminate: () => { isSeeking.current = false; setSeekPct(null); },
   })).current;
@@ -546,14 +596,14 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
               <View style={styles.lblRow}>
                 <Text style={styles.lbl}>Vitesse</Text>
                 <TouchableOpacity onPress={() => showTip("speed")} style={styles.infoBtn}>
-                  <Ionicons name="information-circle-outline" size={14} color={tooltip === "speed" ? "#facc15" : "#3a4e6a"} />
+                  <Ionicons name="information-circle-outline" size={rs(14)} color={tooltip === "speed" ? "#facc15" : "#3a4e6a"} />
                 </TouchableOpacity>
               </View>
               <View style={styles.rowHeadRight}>
                 <Text style={[styles.val, speed !== 1 && styles.valOn]}>{speed.toFixed(2)}×</Text>
                 {speed !== 1 && (
                   <TouchableOpacity onPress={() => setSpeed(1)} style={styles.inlineReset}>
-                    <Ionicons name="refresh" size={11} color="#facc15" />
+                    <Ionicons name="refresh" size={rs(11)} color="#facc15" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -575,12 +625,12 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
               <View style={styles.lblRow}>
                 <Text style={styles.lbl}>Semitones</Text>
                 <TouchableOpacity onPress={() => showTip("semitones")} style={styles.infoBtn}>
-                  <Ionicons name="information-circle-outline" size={14} color={tooltip === "semitones" ? "#a78bfa" : "#3a4e6a"} />
+                  <Ionicons name="information-circle-outline" size={rs(14)} color={tooltip === "semitones" ? "#a78bfa" : "#3a4e6a"} />
                 </TouchableOpacity>
               </View>
               {semitones !== 0 && (
                 <TouchableOpacity onPress={() => setSemitones(0)} style={styles.inlineReset}>
-                  <Ionicons name="refresh" size={11} color="#a78bfa" />
+                  <Ionicons name="refresh" size={rs(11)} color="#a78bfa" />
                 </TouchableOpacity>
               )}
             </View>
@@ -591,7 +641,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
                 disabled={semitones <= -12}
                 style={[styles.stepBtn, semitones <= -12 && styles.stepBtnDim]}
               >
-                <Ionicons name="remove" size={18} color="#a78bfa" />
+                <Ionicons name="remove" size={rs(18)} color="#a78bfa" />
               </TouchableOpacity>
               <View style={styles.stepDisplay}>
                 <Text style={[styles.stepVal, semitones !== 0 && { color: "#a78bfa" }]}>
@@ -604,7 +654,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
                 disabled={semitones >= 12}
                 style={[styles.stepBtn, semitones >= 12 && styles.stepBtnDim]}
               >
-                <Ionicons name="add" size={18} color="#a78bfa" />
+                <Ionicons name="add" size={rs(18)} color="#a78bfa" />
               </TouchableOpacity>
             </View>
             <View style={styles.chips}>
@@ -622,7 +672,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
               <View style={styles.lblRow}>
                 <Text style={styles.lbl}>Diapason</Text>
                 <TouchableOpacity onPress={() => showTip("pitch")} style={styles.infoBtn}>
-                  <Ionicons name="information-circle-outline" size={14} color={tooltip === "pitch" ? "#f97316" : "#3a4e6a"} />
+                  <Ionicons name="information-circle-outline" size={rs(14)} color={tooltip === "pitch" ? "#f97316" : "#3a4e6a"} />
                 </TouchableOpacity>
               </View>
               <View style={styles.rowHeadRight}>
@@ -632,7 +682,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
                 </Text>
                 {pitchCents !== 0 && (
                   <TouchableOpacity onPress={() => setPitchCents(0)} style={styles.inlineReset}>
-                    <Ionicons name="refresh" size={11} color="#f97316" />
+                    <Ionicons name="refresh" size={rs(11)} color="#f97316" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -654,7 +704,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
               <View style={styles.lblRow}>
                 <Text style={styles.lbl}>Reverb RT60</Text>
                 <TouchableOpacity onPress={() => showTip("reverb")} style={styles.infoBtn}>
-                  <Ionicons name="information-circle-outline" size={14} color={tooltip === "reverb" ? "#34d399" : "#3a4e6a"} />
+                  <Ionicons name="information-circle-outline" size={rs(14)} color={tooltip === "reverb" ? "#34d399" : "#3a4e6a"} />
                 </TouchableOpacity>
               </View>
               <View style={styles.rowHeadRight}>
@@ -663,7 +713,7 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
                 </Text>
                 {rt60 > 0 && (
                   <TouchableOpacity onPress={() => setRt60(0)} style={styles.inlineReset}>
-                    <Ionicons name="refresh" size={11} color="#34d399" />
+                    <Ionicons name="refresh" size={rs(11)} color="#34d399" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -681,15 +731,15 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
 
           {/* 8D */}
           <View style={[styles.row, styles.rowInline]}>
-            <View style={{ gap: 3 }}>
+            <View style={{ gap: rs(3) }}>
               <View style={styles.lblRow}>
                 <Text style={styles.lbl}>8D Audio</Text>
                 <TouchableOpacity onPress={() => showTip("e8d")} style={styles.infoBtn}>
-                  <Ionicons name="information-circle-outline" size={14} color={tooltip === "e8d" ? "#facc15" : "#3a4e6a"} />
+                  <Ionicons name="information-circle-outline" size={rs(14)} color={tooltip === "e8d" ? "#facc15" : "#3a4e6a"} />
                 </TouchableOpacity>
               </View>
               {tooltip === "e8d"
-                ? <View style={[styles.tipBox, { marginTop: 4 }]}><Text style={styles.tipTxt}>{TIPS.e8d}</Text></View>
+                ? <View style={[styles.tipBox, { marginTop: rs(4) }]}><Text style={styles.tipTxt}>{TIPS.e8d}</Text></View>
                 : <Text style={styles.sublbl}>Effet spatial rotatif</Text>
               }
             </View>
@@ -704,11 +754,11 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
           {/* Footer */}
           <View style={styles.footer}>
             <TouchableOpacity onPress={resetEffects} style={styles.resetBtn} disabled={!hasEffects}>
-              <Ionicons name="refresh" size={12} color={hasEffects ? "#b5c6d6" : "#2a3a5a"} />
+              <Ionicons name="refresh" size={rs(12)} color={hasEffects ? "#b5c6d6" : "#2a3a5a"} />
               <Text style={[styles.resetTxt, !hasEffects && { color: "#2a3a5a" }]}>Reset</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={download} style={styles.dlBtn} disabled={downloading}>
-              <Ionicons name={downloading ? "hourglass-outline" : "download-outline"} size={13} color="#020118" />
+              <Ionicons name={downloading ? "hourglass-outline" : "download-outline"} size={rs(13)} color="#020118" />
               <Text style={styles.dlTxt}>{downloading ? "Saving…" : "Télécharger"}</Text>
             </TouchableOpacity>
           </View>
@@ -717,13 +767,18 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
 
       {/* ── Barre de progression ── */}
       <View
+        ref={hitRef}
         style={styles.hitArea}
-        onLayout={e => { trackWidth.current = e.nativeEvent.layout.width; }}
+        onLayout={() => {
+          hitRef.current?.measureInWindow((x, _y, w) => {
+            if (w > 0) { hitLeft.current = x; hitWidth.current = w; }
+          });
+        }}
         {...panResponder.panHandlers}
       >
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${pct}%` }]}>
-            <View style={[styles.thumb, seekPct !== null && styles.thumbBig]} />
+        <View style={styles.track} pointerEvents="none">
+          <View style={[styles.fill, { width: `${pct}%` }]} pointerEvents="none">
+            <View style={[styles.thumb, seekPct !== null && styles.thumbBig]} pointerEvents="none" />
           </View>
         </View>
       </View>
@@ -737,26 +792,26 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
       {/* ── Contrôles ── */}
       <View style={styles.controls}>
         <TouchableOpacity onPress={back} disabled={loading || !duration} style={styles.sideBtn}>
-          <Ionicons name="play-back" size={22} color="#b5c6d6" />
+          <Ionicons name="play-back" size={rs(22)} color="#b5c6d6" />
           <Text style={styles.sideLbl}>10s</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={playPause} disabled={loading} style={styles.playBtn} activeOpacity={0.85}>
           <View style={styles.playInner}>
             {loading
-              ? <Ionicons name="hourglass-outline" size={24} color="#020118" />
-              : <Ionicons name={isPlaying ? "pause" : "play"} size={24} color="#020118" />}
+              ? <Ionicons name="hourglass-outline" size={rs(24)} color="#020118" />
+              : <Ionicons name={isPlaying ? "pause" : "play"} size={rs(24)} color="#020118" />}
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={fwd} disabled={loading || !duration} style={styles.sideBtn}>
-          <Ionicons name="play-forward" size={22} color="#b5c6d6" />
+          <Ionicons name="play-forward" size={rs(22)} color="#b5c6d6" />
           <Text style={styles.sideLbl}>10s</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowEffects(v => !v)} style={styles.effectsBtn}>
           <View>
-            <Ionicons name="options-outline" size={22} color={showEffects ? "#facc15" : "#b5c6d6"} />
+            <Ionicons name="options-outline" size={rs(22)} color={showEffects ? "#facc15" : "#b5c6d6"} />
             {hasEffects && <View style={styles.dot} />}
           </View>
           <Text style={[styles.sideLbl, showEffects && { color: "#facc15" }]}>Effets</Text>
@@ -767,57 +822,57 @@ export default function PlaybackControls({ audioSource, songTitle, onEnded, auto
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: "100%", gap: 8 },
+  wrap: { width: "100%", gap: rs(8), overflow: "visible" },
 
-  panel: { gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.06)", marginBottom: 2 },
-  row: { gap: 7 },
+  panel: { gap: rs(14), paddingVertical: rs(10), borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.06)", marginBottom: rs(2) },
+  row: { gap: rs(7) },
   rowInline: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   rowHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  rowHeadRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  inlineReset: { width: 20, height: 20, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.06)", justifyContent: "center", alignItems: "center" },
-  lbl: { fontSize: 11, color: "#b5c6d6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
-  sublbl: { fontSize: 10, color: "#3a4e6a" },
+  rowHeadRight: { flexDirection: "row", alignItems: "center", gap: rs(6) },
+  inlineReset: { width: rs(20), height: rs(20), borderRadius: rs(10), backgroundColor: "rgba(255,255,255,0.06)", justifyContent: "center", alignItems: "center" },
+  lbl: { fontSize: rf(11), color: "#b5c6d6", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  sublbl: { fontSize: rf(10), color: "#3a4e6a" },
   lblDim: { color: "#3a4e6a" },
-  mobileBadge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
-  mobileTxt: { fontSize: 9, color: "#3a4e6a", fontWeight: "600" },
-  val: { fontSize: 12, color: "#5a6e90", fontWeight: "700" },
+  mobileBadge: { paddingHorizontal: rs(5), paddingVertical: rs(1), borderRadius: rs(4), backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  mobileTxt: { fontSize: rf(9), color: "#3a4e6a", fontWeight: "600" },
+  val: { fontSize: rf(12), color: "#5a6e90", fontWeight: "700" },
   valOn: { color: "#facc15" },
-  chips: { flexDirection: "row", gap: 4, flexWrap: "wrap" },
-  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" },
+  chips: { flexDirection: "row", gap: rs(4), flexWrap: "wrap" },
+  chip: { paddingHorizontal: rs(8), paddingVertical: rs(3), borderRadius: rs(8), backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" },
   chipOn: { backgroundColor: "rgba(250,204,21,0.12)", borderColor: "rgba(250,204,21,0.3)" },
-  chipTxt: { fontSize: 10, color: "#3a4e6a", fontWeight: "600" },
+  chipTxt: { fontSize: rf(10), color: "#3a4e6a", fontWeight: "600" },
   chipTxtOn: { color: "#facc15" },
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 2 },
-  resetBtn: { flexDirection: "row", alignItems: "center", gap: 4, padding: 6 },
-  resetTxt: { fontSize: 11, color: "#b5c6d6", fontWeight: "600" },
-  dlBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#facc15", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
-  dlTxt: { fontSize: 12, color: "#020118", fontWeight: "700" },
+  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: rs(2) },
+  resetBtn: { flexDirection: "row", alignItems: "center", gap: rs(4), padding: rs(6) },
+  resetTxt: { fontSize: rf(11), color: "#b5c6d6", fontWeight: "600" },
+  dlBtn: { flexDirection: "row", alignItems: "center", gap: rs(5), backgroundColor: "#facc15", borderRadius: rs(10), paddingHorizontal: rs(12), paddingVertical: rs(6) },
+  dlTxt: { fontSize: rf(12), color: "#020118", fontWeight: "700" },
 
-  lblRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  infoBtn: { width: 18, height: 18, justifyContent: "center", alignItems: "center" },
-  tipBox: { backgroundColor: "#1a2a4a", borderLeftWidth: 2, borderLeftColor: "#facc15", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 7 },
-  tipTxt: { fontSize: 11, color: "#b5c6d6", fontWeight: "500", lineHeight: 17 },
+  lblRow: { flexDirection: "row", alignItems: "center", gap: rs(5) },
+  infoBtn: { width: rs(18), height: rs(18), justifyContent: "center", alignItems: "center" },
+  tipBox: { backgroundColor: "#1a2a4a", borderLeftWidth: 2, borderLeftColor: "#facc15", borderRadius: rs(6), paddingHorizontal: rs(10), paddingVertical: rs(7) },
+  tipTxt: { fontSize: rf(11), color: "#b5c6d6", fontWeight: "500", lineHeight: rf(17) },
 
   stepRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 0 },
-  stepBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(167,139,250,0.1)", borderWidth: 1, borderColor: "rgba(167,139,250,0.25)", justifyContent: "center", alignItems: "center" },
+  stepBtn: { width: rs(44), height: rs(44), borderRadius: rs(22), backgroundColor: "rgba(167,139,250,0.1)", borderWidth: 1, borderColor: "rgba(167,139,250,0.25)", justifyContent: "center", alignItems: "center" },
   stepBtnDim: { opacity: 0.3 },
-  stepDisplay: { flex: 1, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 },
-  stepVal: { fontSize: 26, fontWeight: "800", color: "#5a6e90", letterSpacing: -0.5 },
-  stepUnit: { fontSize: 12, color: "#5a6e90", fontWeight: "600", marginTop: 6 },
+  stepDisplay: { flex: 1, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: rs(4) },
+  stepVal: { fontSize: rf(26), fontWeight: "800", color: "#5a6e90", letterSpacing: -0.5 },
+  stepUnit: { fontSize: rf(12), color: "#5a6e90", fontWeight: "600", marginTop: rs(6) },
 
-  hitArea: { paddingVertical: 10, justifyContent: "center", marginVertical: -10 },
-  track: { height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.1)", overflow: "visible", justifyContent: "center" },
-  fill: { height: 4, borderRadius: 2, backgroundColor: "#facc15", alignItems: "flex-end", justifyContent: "center" },
-  thumb: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#facc15", borderWidth: 1.5, borderColor: "#020118", marginRight: -5, shadowColor: "#facc15", shadowOpacity: 0.8, shadowRadius: 4, elevation: 3 },
-  thumbBig: { width: 14, height: 14, borderRadius: 7, marginRight: -7 },
-  times: { flexDirection: "row", justifyContent: "space-between", marginTop: 2 },
-  time: { fontSize: 10, color: "#5a6e90", fontWeight: "600" },
+  hitArea: { paddingVertical: rs(12), justifyContent: "center", overflow: "visible" },
+  track: { height: rs(4), borderRadius: rs(2), backgroundColor: "rgba(255,255,255,0.1)", overflow: "visible", justifyContent: "center" },
+  fill: { height: rs(4), borderRadius: rs(2), backgroundColor: "#facc15", alignItems: "flex-end", justifyContent: "center" },
+  thumb: { width: rs(10), height: rs(10), borderRadius: rs(5), backgroundColor: "#facc15", borderWidth: 1.5, borderColor: "#020118", marginRight: rs(-5), shadowColor: "#facc15", shadowOpacity: 0.8, shadowRadius: 4, elevation: 3 },
+  thumbBig: { width: rs(14), height: rs(14), borderRadius: rs(7), marginRight: rs(-7) },
+  times: { flexDirection: "row", justifyContent: "space-between", marginTop: rs(2) },
+  time: { fontSize: rf(10), color: "#5a6e90", fontWeight: "600" },
 
-  controls: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20, position: "relative" },
-  sideBtn: { alignItems: "center", gap: 2 },
-  effectsBtn: { position: "absolute", right: 0, alignItems: "center", gap: 2 },
-  sideLbl: { fontSize: 10, color: "#3a4e6a", fontWeight: "700" },
-  dot: { position: "absolute", top: -1, right: -1, width: 5, height: 5, borderRadius: 2.5, backgroundColor: "#facc15" },
-  playBtn: { shadowColor: "#facc15", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },
-  playInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: "#facc15", justifyContent: "center", alignItems: "center" },
+  controls: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: rs(20), position: "relative" },
+  sideBtn: { alignItems: "center", gap: rs(2) },
+  effectsBtn: { position: "absolute", right: 0, alignItems: "center", gap: rs(2) },
+  sideLbl: { fontSize: rf(10), color: "#3a4e6a", fontWeight: "700" },
+  dot: { position: "absolute", top: rs(-1), right: rs(-1), width: rs(5), height: rs(5), borderRadius: rs(3), backgroundColor: "#facc15" },
+  playBtn: { shadowColor: "#facc15", shadowOffset: { width: 0, height: rs(4) }, shadowOpacity: 0.4, shadowRadius: rs(10), elevation: 6 },
+  playInner: { width: rs(54), height: rs(54), borderRadius: rs(27), backgroundColor: "#facc15", justifyContent: "center", alignItems: "center" },
 });

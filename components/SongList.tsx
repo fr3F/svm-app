@@ -1,3 +1,5 @@
+import { BAR_H } from "@/components/TabBar";
+import { useTheme } from "@/stores/useTheme";
 import { isTablet, rs } from "@/utils/responsive";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
@@ -12,6 +14,7 @@ const NUM_COLS = isTablet ? 2 : 1;
 export default function SongList({ data }: { data: Song[] }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors: c } = useTheme();
 
   const sorted = useMemo(() =>
     [...data].sort((a, b) => a.title.localeCompare(b.title, "fr", { sensitivity: "base" })),
@@ -20,6 +23,7 @@ export default function SongList({ data }: { data: Song[] }) {
 
   return (
     <FlatList
+      style={{ flex: 1 }}
       data={sorted}
       keyExtractor={item => item.id}
       numColumns={NUM_COLS}
@@ -35,12 +39,12 @@ export default function SongList({ data }: { data: Song[] }) {
       ItemSeparatorComponent={() => (
         <View style={{
           height: 1,
-          backgroundColor: "rgba(255,255,255,0.05)",
+          backgroundColor: c.border,
           marginLeft: isTablet ? rs(8) : rs(70),
         }} />
       )}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: rs(90) + insets.bottom }}
+      contentContainerStyle={{ paddingBottom: BAR_H + Math.min(insets.bottom, rs(48)) + rs(10) }}
     />
   );
 }

@@ -30,7 +30,7 @@ export default function AudioWebViewEngine() {
       <WebView
         ref={ref => { nativeEngine.webRef = ref; }}
         source={{ html: AUDIO_HTML, baseUrl: "file:///" }}
-        style={styles.hidden}
+        style={styles.webview}
         onLoadEnd={handleReady}
         onMessage={handleMsg}
         originWhitelist={["*"]}
@@ -42,6 +42,8 @@ export default function AudioWebViewEngine() {
         javaScriptEnabled
         domStorageEnabled
         allowsInlineMediaPlayback
+        scrollEnabled={false}
+        overScrollMode="never"
         {...(Platform.OS === "android" ? { androidLayerType: "hardware" } : {})}
       />
     </View>
@@ -49,6 +51,7 @@ export default function AudioWebViewEngine() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { position: "absolute", width: 0, height: 0, overflow: "hidden" },
-  hidden: { width: 0, height: 0 },
+  // opacity:0 + taille réelle — évite le throttling Android sur les WebViews 0×0
+  wrapper: { position: "absolute", width: 1, height: 1, opacity: 0, overflow: "hidden" },
+  webview: { width: 1, height: 1, backgroundColor: "transparent" },
 });

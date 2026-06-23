@@ -25,6 +25,7 @@
         "background": "./assets/images/svm_round.png"
       },
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "pan",
       "predictiveBackGestureEnabled": false,
       "enableDangerousExperimentalLeanBuilds": true,
       "permissions": [
