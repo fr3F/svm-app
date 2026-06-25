@@ -1,5 +1,4 @@
 import { songs } from "@/assets/data/songs";
-import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 import LyricsDisplay from "@/components/player/LyricsDisplay";
 import PlaybackControls from "@/components/player/PlaybackControls";
 import Screen from "@/components/Screen";
@@ -7,6 +6,7 @@ import ShareSongModal from "@/components/ShareSongModal";
 import { BAR_H } from "@/components/TabBar";
 import { useFavorites } from "@/stores/useFavorites";
 import { addToHistory } from "@/stores/useHistory";
+import { useLanguage } from "@/stores/useLanguage";
 import { usePlayer } from "@/stores/usePlayer";
 import { useTheme } from "@/stores/useTheme";
 import { ThemeColors } from "@/utils/colors";
@@ -16,8 +16,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Image, ScrollView, StatusBar,
-  StyleSheet, Text, TouchableOpacity, View,
+  Animated, Image, PanResponder, ScrollView, StatusBar,
+  StyleSheet, Text, TouchableOpacity, useWindowDimensions, View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -34,9 +34,10 @@ export default function SongDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors: c } = useTheme();
+  const { T } = useLanguage();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const [showPlayer, setShowPlayer] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [showPlaylist, setShowPlaylist] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   const [autoScroll, setAutoScroll] = useState(false);
   const [fontSize, setFontSizeState] = useState<number>(FONT_DEFAULT);
@@ -54,6 +55,41 @@ export default function SongDetail() {
       return next;
     });
   };
+
+  const PILL_W = rs(44);
+  const PILL_H = rs(128);
+  const pillPos = useRef(new Animated.ValueXY({
+    x: screenW - PILL_W - rs(10),
+    y: rs(10),
+  })).current;
+  const pillPanResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, { dx, dy }) => Math.abs(dx) > 4 || Math.abs(dy) > 4,
+    onPanResponderGrant: () => {
+      pillPos.setOffset({
+        x: (pillPos.x as any)._value,
+        y: (pillPos.y as any)._value,
+      });
+      pillPos.setValue({ x: 0, y: 0 });
+    },
+    onPanResponderMove: Animated.event(
+      [null, { dx: pillPos.x, dy: pillPos.y }],
+      { useNativeDriver: false }
+    ),
+    onPanResponderRelease: () => {
+      pillPos.flattenOffset();
+      const x = (pillPos.x as any)._value;
+      const y = (pillPos.y as any)._value;
+      const cx = Math.max(0, Math.min(screenW - PILL_W, x));
+      const cy = Math.max(insets.top, Math.min(screenH - PILL_H - BAR_H - insets.bottom, y));
+      Animated.spring(pillPos, {
+        toValue: { x: cx, y: cy },
+        useNativeDriver: false,
+        bounciness: 6,
+      }).start();
+    },
+  })).current;
+
   const scrollRef = useRef<ScrollView>(null);
   const contentHeightRef = useRef(0);
   const viewportHeightRef = useRef(0);
@@ -138,7 +174,7 @@ export default function SongDetail() {
         </TouchableOpacity>
         <View style={styles.notFound}>
           <Ionicons name="musical-notes-outline" size={56} color={c.textMuted} />
-          <Text style={styles.notFoundText}>Tsy hita ny hira</Text>
+          <Text style={styles.notFoundText}>{T.songNotFound}</Text>
         </View>
       </SafeAreaView>
     );
@@ -170,13 +206,6 @@ export default function SongDetail() {
           >
             <Ionicons name="share-outline" size={20} color={c.textSub} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowPlaylist(true)}
-            style={styles.iconBtn}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="bookmark-outline" size={20} color={c.textSub} />
-          </TouchableOpacity>
           {song!.type === "playback" && (
             <TouchableOpacity
               onPress={() => setAutoScroll(v => !v)}
@@ -190,7 +219,7 @@ export default function SongDetail() {
             <TouchableOpacity
               onPress={() => {
                 if (!showPlayer) startPlay(activeSong);
-                setShowPlayer(v => !v);
+                setShowPlayer(true);
               }}
               style={[styles.iconBtn, showPlayer && styles.iconBtnActive]}
               activeOpacity={0.7}
@@ -232,8 +261,11 @@ export default function SongDetail() {
 
         {/* ── Lyrics + font pill ── */}
         <View style={{ flex: 1 }}>
-          {/* Font size pill — floating right */}
-          <View style={styles.fontPillWrap}>
+          {/* Font size pill — draggable */}
+          <Animated.View
+            style={[styles.fontPillWrap, pillPos.getLayout()]}
+            {...pillPanResponder.panHandlers}
+          >
             <TouchableOpacity
               onPress={() => changeFontSize(2)}
               disabled={fontSize >= FONT_MAX}
@@ -255,7 +287,7 @@ export default function SongDetail() {
             >
               <Text style={styles.fontBtnSmallA}>A</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
         {/* ── Paroles scrollables ── */}
         <ScrollView
@@ -286,6 +318,11 @@ export default function SongDetail() {
         {/* ── Player fixe en bas ── */}
         {song!.type === "playback" && song!.audio && playerEverShown.current && (
           <View style={[styles.playerCard, { bottom: BAR_H + insets.bottom + rs(10) }, !showPlayer && { display: "none" }]}>
+            {/* Dismiss */}
+            <TouchableOpacity onPress={() => setShowPlayer(false)} style={styles.playerDismiss} activeOpacity={0.6}>
+              <Ionicons name="chevron-down" size={14} color={c.textSub} />
+              <Text style={styles.playerDismissLbl}>Fermer</Text>
+            </TouchableOpacity>
             {/* Prev / Autoplay / Next */}
             <View style={styles.navRow}>
               <TouchableOpacity
@@ -336,12 +373,6 @@ export default function SongDetail() {
         onClose={() => setShowShare(false)}
         title={activeSong!.title}
         lyrics={activeSong!.lyrics}
-      />
-      <AddToPlaylistModal
-        visible={showPlaylist}
-        onClose={() => setShowPlaylist(false)}
-        songId={activeSong!.id}
-        songTitle={activeSong!.title}
       />
     </SafeAreaView>
   );
@@ -411,8 +442,6 @@ function makeStyles(c: ThemeColors) {
 
     fontPillWrap: {
       position: "absolute",
-      right: rs(10),
-      bottom: rs(80),
       zIndex: 10,
       backgroundColor: c.accent,
       borderRadius: rs(20),
@@ -487,6 +516,22 @@ function makeStyles(c: ThemeColors) {
     autoLbl: { fontSize: rf(10), color: c.textMuted, fontWeight: "700" },
     playerDivider: {
       height: 1, backgroundColor: c.border, marginBottom: rs(8),
+    },
+    playerDismiss: {
+      alignSelf: "center",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: rs(6),
+      backgroundColor: c.surface,
+      borderRadius: rs(20),
+      paddingVertical: rs(5),
+      paddingHorizontal: rs(16),
+      marginBottom: rs(8),
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    playerDismissLbl: {
+      fontSize: rf(11), fontWeight: "600", color: c.textSub,
     },
 
     backBtn: {
